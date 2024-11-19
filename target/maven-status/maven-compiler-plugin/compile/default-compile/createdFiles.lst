@@ -1,0 +1,7 @@
+com/example/event_review/Entity/Roles.class
+com/example/event_review/Repo/RolesRepo.class
+com/example/event_review/Config/CorsConfig.class
+com/example/event_review/Service/RolesService.class
+com/example/event_review/Controller/RolesController.class
+com/example/event_review/DTO/RolesDTO.class
+com/example/event_review/EventReviewApplication.class
