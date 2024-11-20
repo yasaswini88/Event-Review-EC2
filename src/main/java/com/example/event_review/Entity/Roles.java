@@ -5,7 +5,10 @@ import jakarta.persistence.Id;
 
 @Entity
 public class Roles {
+
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
     private Long roleId;
     private String roleName;
 
