@@ -1,7 +1,7 @@
 package com.example.event_review.Entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+
 
 @Entity
 public class Roles {
