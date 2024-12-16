@@ -1,7 +1,53 @@
-/Users/mohanapriyankaromala/Desktop/Anusha's Project/Anu's Sftwr/event-review/src/main/java/com/example/event_review/Config/CorsConfig.java
-/Users/mohanapriyankaromala/Desktop/Anusha's Project/Anu's Sftwr/event-review/src/main/java/com/example/event_review/Controller/RolesController.java
-/Users/mohanapriyankaromala/Desktop/Anusha's Project/Anu's Sftwr/event-review/src/main/java/com/example/event_review/DTO/RolesDTO.java
-/Users/mohanapriyankaromala/Desktop/Anusha's Project/Anu's Sftwr/event-review/src/main/java/com/example/event_review/Entity/Roles.java
-/Users/mohanapriyankaromala/Desktop/Anusha's Project/Anu's Sftwr/event-review/src/main/java/com/example/event_review/EventReviewApplication.java
-/Users/mohanapriyankaromala/Desktop/Anusha's Project/Anu's Sftwr/event-review/src/main/java/com/example/event_review/Repo/RolesRepo.java
-/Users/mohanapriyankaromala/Desktop/Anusha's Project/Anu's Sftwr/event-review/src/main/java/com/example/event_review/Service/RolesService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Config/CorsConfig.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Config/GoogleAuthConfig.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ApprovalHistoryController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ApproverDashboardController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/DepartmentController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/EventController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/FundingSourceController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ProposalController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/PurchaseOrderController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/RolesController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/UserController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/ApprovalHistoryDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/CodeVerificationRequest.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/DepartmentDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/EventDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/ForgotPasswordRequest.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/FundingSourceDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/GoogleLoginRequest.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/LoginRequest.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/PasswordResetRequest.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/ProposalDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/PurchaseOrderDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/RolesDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/UserDTO.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/ApprovalHistory.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/Department.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/Event.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/FundingSource.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/Proposal.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/PurchaseOrder.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/Roles.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/User.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/VerificationCode.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/EventReviewApplication.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/ApprovalHistoryRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/DepartmentRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/EventRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/FundingSourceRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/ProposalRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/PurchaseOrderRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/RolesRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/UserRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/VerificationCodeRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/ApprovalHistoryService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/ApproverDashboardService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/DepartmentService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/EmailService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/EventService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/FundingSourceService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/ProposalService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/PurchaseOrderService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/RolesService.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Service/UserService.java

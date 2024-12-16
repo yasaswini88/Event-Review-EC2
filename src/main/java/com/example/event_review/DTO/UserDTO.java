@@ -11,6 +11,7 @@ public class UserDTO {
     private String email;
     private String phoneNumber;
     private String roleName; // Role name from the Roles entity
+    
 
     public UserDTO() {}
 

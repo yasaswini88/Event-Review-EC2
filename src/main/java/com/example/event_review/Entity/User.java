@@ -19,9 +19,11 @@ public class User {
     private String password;
     private String phoneNumber;
 
-    @OneToOne
-    @JoinColumn(name = "role_Id") 
-    private Roles roles;
+@ManyToOne
+@JoinColumn(name = "role_id", nullable = false)
+private Roles roles;
+
+
 
     //Getters and Setters 
     
