@@ -36,8 +36,8 @@ com/example/event_review/Service/RolesService.class
 com/example/event_review/Service/ProposalService.class
 com/example/event_review/Controller/RolesController.class
 com/example/event_review/Entity/PurchaseOrder.class
-com/example/event_review/Repo/ApprovalHistoryRepo.class
 com/example/event_review/DTO/DepartmentDTO.class
+com/example/event_review/Repo/ApprovalHistoryRepo.class
 com/example/event_review/Controller/ApprovalHistoryController.class
 com/example/event_review/Entity/Proposal.class
 com/example/event_review/Entity/Department.class
