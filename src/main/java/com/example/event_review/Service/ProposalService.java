@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -243,6 +244,20 @@ public class ProposalService {
             return null;
         }
     }
+
+    public List<ProposalDTO> getProposalsByApproverAndStatus(Long approverId, String status) {
+        try {
+            return proposalRepo.findByCurrentApprover_UserIdAndStatus(approverId, status)
+                    .stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Error getting proposals for approver {} with status {}: ", approverId, status, e);
+            return Collections.emptyList();
+        }
+    }
+
+    
     // This method is used to update the status of a proposal. It first checks if
     // the proposal and approver exist, then updates the status of the proposal with
     // the new status provided.

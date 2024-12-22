@@ -61,12 +61,28 @@ public class UserController {
     }
 
     // Authentication
+    // @PostMapping("/login")
+    // public ResponseEntity<User> login(@RequestBody LoginRequest loginRequest) {
+    //     return userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
+    //             .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
+    //             .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
+    // }
+
     @PostMapping("/login")
-    public ResponseEntity<User> login(@RequestBody LoginRequest loginRequest) {
-        return userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
-                .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
+    public ResponseEntity<UserDTO> login(@RequestBody LoginRequest loginRequest) {
+        Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
+        
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // Now we can call the public convertToDTO method on userService
+            UserDTO userDTO = userService.convertToDTO(user);
+            return new ResponseEntity<>(userDTO, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
     }
+    
+
 
     // Password Reset Flow
     @PostMapping("/forgot-password")
@@ -117,16 +133,28 @@ public class UserController {
     // }
     // }
 
+    // @PostMapping("/google-login")
+    // public ResponseEntity<User> googleLogin(@RequestBody GoogleLoginRequest request) {
+    //     try {
+    //         return userService.handleGoogleLogin(request.getCredential())
+    //                 .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
+    //                 .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED)); // No user found, return 401
+    //     } catch (Exception e) {
+    //         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Internal error
+    //     }
+    // }
+
     @PostMapping("/google-login")
-    public ResponseEntity<User> googleLogin(@RequestBody GoogleLoginRequest request) {
-        try {
-            return userService.handleGoogleLogin(request.getCredential())
-                    .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-                    .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED)); // No user found, return 401
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Internal error
-        }
+public ResponseEntity<UserDTO> googleLogin(@RequestBody GoogleLoginRequest request) {
+    try {
+        return userService.handleGoogleLogin(request.getCredential())
+                .map(userDTO -> new ResponseEntity<>(userDTO, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED)); // No user found, return 401
+    } catch (Exception e) {
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Internal error
     }
+}
+
 
     // User Profile Update
     @PutMapping("/users/{userId}")

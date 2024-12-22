@@ -34,24 +34,77 @@ public class UserService {
     @Autowired
 private GoogleIdTokenVerifier googleIdTokenVerifier;
 
-public Optional<User> handleGoogleLogin(String credential) {
-    try {
-        // Verify the Google token
-        GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
+// public Optional<User> handleGoogleLogin(String credential) {
+//     try {
+//         // Verify the Google token
+//         GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
         
-        if (idToken != null) {
-            // Extract email from the token payload
-            GoogleIdToken.Payload payload = idToken.getPayload();
-            String email = payload.getEmail();
+//         if (idToken != null) {
+//             // Extract email from the token payload
+//             GoogleIdToken.Payload payload = idToken.getPayload();
+//             String email = payload.getEmail();
             
-            // Check if the user exists in the database
-            return userRepo.findByEmail(email); // Return the user if found
+//             // Check if the user exists in the database
+//             return userRepo.findByEmail(email); // Return the user if found
+//         }
+//         return Optional.empty(); // Return empty if token verification fails
+//     } catch (Exception e) {
+//         throw new RuntimeException("Error processing Google login", e);
+//     }
+// }
+
+
+public Optional<UserDTO> handleGoogleLogin(String credential) {
+    try {
+        // 1. Verify the Google token
+        GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
+        if (idToken == null) {
+            // Token verification failed
+            return Optional.empty();
         }
-        return Optional.empty(); // Return empty if token verification fails
+
+        // 2. Extract email and optionally other claims from the token payload
+        GoogleIdToken.Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+        String givenName = (String) payload.get("given_name");    // optional
+        String familyName = (String) payload.get("family_name");  // optional
+
+        // 3. Check if user already exists in the DB
+        Optional<User> existingUserOpt = userRepo.findByEmail(email);
+        User user;
+        if (existingUserOpt.isPresent()) {
+            // 3a. If user already exists, reuse it
+            user = existingUserOpt.get();
+        } else {
+            // 3b. If user doesn't exist, create a new one
+            Roles facultyRole = rolesRepo.findById(2L)
+                .orElseThrow(() -> new RuntimeException("Faculty role with ID=2 not found!"));
+
+            // Create new user
+            user = new User();
+            user.setEmail(email);
+            user.setFirstName(givenName);
+            user.setLastName(familyName);
+            user.setPassword("GOOGLE_SSO"); // or null, if you prefer
+            user.setRoles(facultyRole);
+            
+            // Save user (automatically assigns userId)
+            user = userRepo.save(user);
+        }
+
+        // 4. Convert the user entity to a UserDTO
+        UserDTO userDTO = convertToDTO(user);
+
+        // 5. Return the newly created or existing user as a DTO
+        return Optional.of(userDTO);
+
     } catch (Exception e) {
+        // If there's an error verifying or processing the token
         throw new RuntimeException("Error processing Google login", e);
     }
 }
+
+
 
     public List<UserDTO> getAllUsers() {
         return userRepo.findAll()
@@ -194,15 +247,25 @@ public Optional<User> handleGoogleLogin(String credential) {
         return new Date(System.currentTimeMillis() + (10 * 60 * 1000)); // 10 minutes
     }
 
-    private UserDTO convertToDTO(User user) {
-        return new UserDTO(
-                user.getUserId(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getGender(),
-                user.getEmail(),
-                user.getPhoneNumber(),
-                user.getRoles().getRoleName()
-        );
+    public UserDTO convertToDTO(User user) {
+        // 1. Create a RolesDTO from user.getRoles()
+        RolesDTO rolesDTO = new RolesDTO();
+        rolesDTO.setRoleId(user.getRoles().getRoleId());
+        rolesDTO.setRoleName(user.getRoles().getRoleName());
+    
+        // 2. Create a new UserDTO
+        UserDTO userDTO = new UserDTO();
+        userDTO.setUserId(user.getUserId());
+        userDTO.setFirstName(user.getFirstName());
+        userDTO.setLastName(user.getLastName());
+        userDTO.setGender(user.getGender());
+        userDTO.setEmail(user.getEmail());
+        userDTO.setPhoneNumber(user.getPhoneNumber());
+    
+        // 3. Set roles on the UserDTO
+        userDTO.setRoles(rolesDTO);
+    
+        return userDTO;
     }
+    
 }
