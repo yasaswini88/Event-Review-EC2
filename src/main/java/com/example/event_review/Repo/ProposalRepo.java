@@ -18,5 +18,7 @@ public interface ProposalRepo extends JpaRepository<Proposal, Long> {
 List<Proposal> findByUser_UserIdAndStatus(Long userId, String status);// This method is used to find all proposals created by a specific user with a specific status.
 List<Proposal> findByUser_UserIdAndStatusAndProposalDateBetween(
     Long userId, String status, LocalDateTime startDate, LocalDateTime endDate);  // This method is used to find all proposals created by a specific user with a specific status between two specific dates.
+    List<Proposal> findByCurrentApprover_UserIdAndStatus(Long approverId, String status);
+
 
 }

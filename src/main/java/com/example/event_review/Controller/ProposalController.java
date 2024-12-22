@@ -110,4 +110,13 @@ public ResponseEntity<List<ProposalDTO>> searchProposals(
     List<ProposalDTO> proposals = proposalService.searchProposals(userId, status, startDate, endDate);
     return ResponseEntity.ok(proposals);
 }
+
+@GetMapping("/approver/{approverId}/status/{status}")
+public List<ProposalDTO> getProposalsByApproverIdAndStatus(
+        @PathVariable Long approverId,
+        @PathVariable String status) {
+    return proposalService.getProposalsByApproverAndStatus(approverId, status);
+}
+
+
 }

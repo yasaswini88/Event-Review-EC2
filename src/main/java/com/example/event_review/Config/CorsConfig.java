@@ -13,10 +13,13 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("https://kite-sunny-molly.ngrok-free.app"); 
+         
         config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedOrigin("http://3.80.149.107:3000");
-        config.addAllowedOrigin("http://174.129.138.174:8080"); 
+        // config.addAllowedOrigin("http://54.175.8.123:3000");
+        config.addAllowedOrigin("http://35.173.220.149:3000/");
+
+        config.addAllowedOrigin("http://35.153.179.66:8080"); 
+        
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);
