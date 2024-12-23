@@ -19,7 +19,8 @@ public class CorsConfig {
         config.addAllowedOrigin("http://35.173.220.149:3000/");
 
         config.addAllowedOrigin("http://35.153.179.66:8080"); 
-        
+        config.addAllowedOriginPattern("*");
+
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         source.registerCorsConfiguration("/**", config);

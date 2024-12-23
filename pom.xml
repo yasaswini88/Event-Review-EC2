@@ -51,11 +51,7 @@
 
 
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
+		
 <!--		<dependency>-->
 <!--			<groupId>com.mysql</groupId>-->
 <!--			<artifactId>mysql-connector-j</artifactId>-->
@@ -96,9 +92,52 @@
     <groupId>com.google.code.gson</groupId>
     <artifactId>gson</artifactId>
     <version>2.10.1</version>
+
+</dependency>
+
+<!-- Spring Boot Starter Security -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!-- JWT Library (JJWT) -->
+   <!-- JJWT multi-module approach -->
+<dependency>
+  <groupId>io.jsonwebtoken</groupId>
+  <artifactId>jjwt-api</artifactId>
+  <version>0.11.5</version>
+</dependency>
+
+<dependency>
+  <groupId>io.jsonwebtoken</groupId>
+  <artifactId>jjwt-impl</artifactId>
+  <version>0.11.5</version>
+  <scope>runtime</scope>
+</dependency>
+
+<dependency>
+  <groupId>io.jsonwebtoken</groupId>
+  <artifactId>jjwt-jackson</artifactId>
+  <version>0.11.5</version>
+  <scope>runtime</scope>
 </dependency>
 
 
+
+    <!-- If you need this for encryption or signatures -->
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-impl</artifactId>
+        <version>0.11.5</version>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if you prefer -->
+        <version>0.11.5</version>
+        <scope>runtime</scope>
+    </dependency>
 
 	</dependencies>
 
