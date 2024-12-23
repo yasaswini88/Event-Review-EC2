@@ -16,7 +16,7 @@ public class CorsConfig {
          
         config.addAllowedOrigin("http://localhost:3000");
         // config.addAllowedOrigin("http://54.175.8.123:3000");
-        config.addAllowedOrigin("http://35.173.220.149:3000/");
+        config.addAllowedOrigin("http://35.173.220.149:3000");
 
         config.addAllowedOrigin("http://35.153.179.66:8080"); 
         config.addAllowedOriginPattern("*");

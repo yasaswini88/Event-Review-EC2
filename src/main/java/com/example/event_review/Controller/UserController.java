@@ -3,6 +3,8 @@ package com.example.event_review.Controller;
 import com.example.event_review.DTO.*;
 import com.example.event_review.Entity.User;
 import com.example.event_review.Service.UserService;
+import com.example.event_review.security.jwt.JwtUtils;
+
 // import com.example.event_review.Service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,9 @@ import java.util.*;
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Autowired
+private JwtUtils jwtUtils;
 
     // @Autowired
     // private EmailService emailService;
@@ -68,20 +73,43 @@ public class UserController {
     //             .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
     // }
 
-    @PostMapping("/login")
-    public ResponseEntity<UserDTO> login(@RequestBody LoginRequest loginRequest) {
-        System.out.println("Testing jwt-feature branch: Login endpoint accessed");
-        Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
+    // @PostMapping("/login")
+    // public ResponseEntity<UserDTO> login(@RequestBody LoginRequest loginRequest) {
+    //     System.out.println("Testing jwt-feature branch: Login endpoint accessed");
+    //     Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
         
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            // Now we can call the public convertToDTO method on userService
-            UserDTO userDTO = userService.convertToDTO(user);
-            return new ResponseEntity<>(userDTO, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-        }
+    //     if (userOpt.isPresent()) {
+    //         User user = userOpt.get();
+    //         // Now we can call the public convertToDTO method on userService
+    //         UserDTO userDTO = userService.convertToDTO(user);
+    //         return new ResponseEntity<>(userDTO, HttpStatus.OK);
+    //     } else {
+    //         return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    //     }
+    // }
+
+    @PostMapping("/login")
+public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
+    Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
+
+    if (userOpt.isPresent()) {
+        User user = userOpt.get();
+
+        // 1) generate token
+        String token = jwtUtils.generateJwtToken(user.getEmail());
+
+        // 2) create a response body
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        // also put user details or anything else you want
+        response.put("user", userService.convertToDTO(user));
+
+        // 3) Return 200 + token + user data
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    } else {
+        return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
     }
+}
     
 
 
