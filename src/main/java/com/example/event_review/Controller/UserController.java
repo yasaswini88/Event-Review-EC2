@@ -70,6 +70,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<UserDTO> login(@RequestBody LoginRequest loginRequest) {
+        System.out.println("Testing jwt-feature branch: Login endpoint accessed");
         Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
         
         if (userOpt.isPresent()) {
