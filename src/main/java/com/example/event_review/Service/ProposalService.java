@@ -3,9 +3,11 @@ package com.example.event_review.Service;
 import com.example.event_review.DTO.ProposalDTO;
 import com.example.event_review.Entity.Department;
 import com.example.event_review.Entity.Proposal;
+import com.example.event_review.Entity.PurchaseOrder;
 import com.example.event_review.Entity.User;
 import com.example.event_review.Repo.DepartmentRepo;
 import com.example.event_review.Repo.ProposalRepo;
+import com.example.event_review.Repo.PurchaseOrderRepo;
 import com.example.event_review.Repo.UserRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +40,10 @@ public class ProposalService {
 
     @Autowired
     private ApprovalHistoryService approvalHistoryService;
+
+    @Autowired
+private PurchaseOrderRepo purchaseOrderRepo;
+
 
     public List<ProposalDTO> getAllProposals() {
         try {
@@ -149,7 +155,15 @@ public class ProposalService {
                         savedProposal.getEstimatedCost(),
                         savedProposal.getBusinessPurpose());
 
-                emailService.sendSimpleEmail(approver.getEmail(), subject, message);
+                // This URL points to your new route: /proposal/:proposalId
+                String link = "http://35.173.220.149:3000/proposal/" + savedProposal.getProposalId();
+
+                // Now call sendEmailWithLink
+                emailService.sendEmailWithLink(
+                        approver.getEmail(),
+                        subject,
+                        link,
+                        message);
             }
 
             return convertToDTO(savedProposal); // The saved proposal is converted to a ProposalDTO object and returned.
@@ -220,6 +234,7 @@ public class ProposalService {
                 // Add the history entry
                 approvalHistoryService.addHistoryEntry(id, approverId, fundingSourceId, oldStatus, newStatus, comments);
                 // Send email to the faculty member who created the proposal
+                // Send email to the faculty member who created the proposal
                 User faculty = updatedProposal.getUser();
                 String facultySubject = "Your Proposal Status Has Been Updated";
                 String facultyMessage = String.format(
@@ -233,7 +248,13 @@ public class ProposalService {
                         newStatus,
                         comments != null ? comments : "No comments provided");
 
-                emailService.sendSimpleEmail(faculty.getEmail(), facultySubject, facultyMessage);
+                String link = "http://35.173.220.149:3000/proposal/" + updatedProposal.getProposalId();
+
+                emailService.sendEmailWithLink(
+                        faculty.getEmail(),
+                        facultySubject,
+                        link,
+                        facultyMessage);
 
                 // Convert and return the updated proposal
                 return convertToDTO(updatedProposal);
@@ -257,7 +278,6 @@ public class ProposalService {
         }
     }
 
-    
     // This method is used to update the status of a proposal. It first checks if
     // the proposal and approver exist, then updates the status of the proposal with
     // the new status provided.
@@ -286,6 +306,16 @@ public class ProposalService {
         proposalDTO.setCurrentApproverId(
                 proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null);
         proposalDTO.setDepartmentId(proposal.getDepartment().getDeptId());
+
+        if ("APPROVED".equalsIgnoreCase(proposal.getStatus())) {
+        // Find the purchase order by proposalId:
+        PurchaseOrder purchaseOrder = purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
+        if (purchaseOrder != null) {
+            proposalDTO.setOrderStatus(purchaseOrder.getOrderStatus());
+            proposalDTO.setDeliveryStatus(purchaseOrder.getDeliveryStatus());
+        }
+    }
+
         return proposalDTO;
     }
     // This method is used to convert a Proposal entity to a ProposalDTO object.
