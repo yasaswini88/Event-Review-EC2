@@ -16,7 +16,7 @@ public class PurchaseOrder {
     private Proposal proposal;
 
     private String orderStatus; // Pending, Ordered
-    private String deliveryStatus; // Processing, Shipped, Delivered, etc.
+    private String deliveryStatus; // Processing, Shipped, Delivered .
     private LocalDateTime orderDate;
     private LocalDateTime expectedDeliveryDate;
     private String purchaseOrderNumber;
