@@ -16,6 +16,25 @@ public class ProposalDTO {
     private LocalDateTime proposalDate;
     private Long currentApproverId;
     private Long departmentId;
+    private String orderStatus;
+private String deliveryStatus;
+
+
+public String getOrderStatus() {
+    return orderStatus;
+}
+
+public void setOrderStatus(String orderStatus) {
+    this.orderStatus = orderStatus;
+}
+
+public String getDeliveryStatus() {
+    return deliveryStatus;
+}
+
+public void setDeliveryStatus(String deliveryStatus) {
+    this.deliveryStatus = deliveryStatus;
+}
 
     public Long getDepartmentId() {
         return departmentId;
