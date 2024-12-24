@@ -62,20 +62,25 @@ public class PurchaseOrderService {
 
     public PurchaseOrderDTO updateOrderStatus(Long orderId, String newOrderStatus) {
         Optional<PurchaseOrder> orderOpt = purchaseOrderRepo.findById(orderId);
-        
+    
         if (orderOpt.isPresent()) {
             PurchaseOrder order = orderOpt.get();
             order.setOrderStatus(newOrderStatus);
-            
-            if ("ORDERED".equals(newOrderStatus)) {
+    
+            if ("ORDERED".equalsIgnoreCase(newOrderStatus)) {
                 order.setDeliveryStatus("Processing");
                 notifyFacultyAboutOrder(order);
             }
-            
-            return convertToDTO(purchaseOrderRepo.save(order));
+    
+            // Save and log for debugging
+            PurchaseOrder savedOrder = purchaseOrderRepo.save(order);
+            System.out.println("Updated Order Status: " + savedOrder.getOrderStatus());
+            return convertToDTO(savedOrder);
         }
+        System.out.println("Order not found for ID: " + orderId);
         return null;
     }
+    
 
     public PurchaseOrderDTO updateDeliveryStatus(Long orderId, String newStatus, LocalDateTime expectedDeliveryDate) {
         Optional<PurchaseOrder> orderOpt = purchaseOrderRepo.findById(orderId);
