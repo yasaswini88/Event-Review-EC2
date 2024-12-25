@@ -4,6 +4,9 @@ import com.example.event_review.DTO.PurchaseOrderDTO;
 import com.example.event_review.Entity.PurchaseOrder;
 import com.example.event_review.Entity.Proposal;
 import com.example.event_review.Repo.PurchaseOrderRepo;
+
+import jakarta.transaction.Transactional;
+
 import com.example.event_review.Repo.ProposalRepo;
 // import org.slf4j.Logger;
 // import org.slf4j.LoggerFactory;
@@ -18,7 +21,8 @@ import java.time.format.DateTimeFormatter;
 
 @Service
 public class PurchaseOrderService {
-    // private static final Logger logger = LoggerFactory.getLogger(PurchaseOrderService.class);
+    // private static final Logger logger =
+    // LoggerFactory.getLogger(PurchaseOrderService.class);
 
     @Autowired
     private PurchaseOrderRepo purchaseOrderRepo;
@@ -43,35 +47,40 @@ public class PurchaseOrderService {
 
     public PurchaseOrderDTO createPurchaseOrder(Long proposalId) {
         Optional<Proposal> proposalOpt = proposalRepo.findById(proposalId);
-        
+
         if (proposalOpt.isPresent() && "APPROVED".equals(proposalOpt.get().getStatus())) {
             Proposal proposal = proposalOpt.get();
             PurchaseOrder order = new PurchaseOrder();
             order.setProposal(proposal);
             order.setOrderDate(LocalDateTime.now());
-            order.setOrderStatus("PENDING"); // Initial status when created
+            order.setOrderStatus("ORDERED");
+ // Initial status when created
             order.setDeliveryStatus("Not Started");
             order.setPurchaseOrderNumber(generatePONumber());
             order.setFinalCost(proposal.getEstimatedCost());
 
             PurchaseOrder savedOrder = purchaseOrderRepo.save(order);
+            System.out.println("Creating purchase order for proposal ID: " + proposalId);
+            System.out.println("Order status: " + order.getOrderStatus());
+
             return convertToDTO(savedOrder);
         }
         return null;
     }
 
+    @Transactional
     public PurchaseOrderDTO updateOrderStatus(Long orderId, String newOrderStatus) {
         Optional<PurchaseOrder> orderOpt = purchaseOrderRepo.findById(orderId);
-    
+
         if (orderOpt.isPresent()) {
             PurchaseOrder order = orderOpt.get();
             order.setOrderStatus(newOrderStatus);
-    
+
             if ("ORDERED".equalsIgnoreCase(newOrderStatus)) {
                 order.setDeliveryStatus("Processing");
                 notifyFacultyAboutOrder(order);
             }
-    
+
             // Save and log for debugging
             PurchaseOrder savedOrder = purchaseOrderRepo.save(order);
             System.out.println("Updated Order Status: " + savedOrder.getOrderStatus());
@@ -80,58 +89,61 @@ public class PurchaseOrderService {
         System.out.println("Order not found for ID: " + orderId);
         return null;
     }
-    
 
-    public PurchaseOrderDTO updateDeliveryStatus(Long orderId, String newStatus, LocalDateTime expectedDeliveryDate) {
+    public PurchaseOrderDTO updateDeliveryStatus(Long orderId, String newStatus, LocalDateTime expectedDeliveryDate,
+    String purchaseOrderNumber) {
         Optional<PurchaseOrder> orderOpt = purchaseOrderRepo.findById(orderId);
-        
+
         if (orderOpt.isPresent()) {
             PurchaseOrder order = orderOpt.get();
             order.setDeliveryStatus(newStatus);
             order.setExpectedDeliveryDate(expectedDeliveryDate);
-            
+
+            if (purchaseOrderNumber != null) {
+                order.setPurchaseOrderNumber(purchaseOrderNumber);
+            }
+
             // Send notification for delivery status update
             notifyFacultyAboutDeliveryStatus(order);
-            
+
             // Additional notification for delivered items
             if ("Delivered".equals(newStatus)) {
                 notifyFacultyAboutDelivery(order);
             }
-            
+
             return convertToDTO(purchaseOrderRepo.save(order));
         }
         return null;
     }
- // Add this new method for delivery notification
- private void notifyFacultyAboutDelivery(PurchaseOrder order) {
-    String facultyEmail = order.getProposal().getUser().getEmail();
-    String subject = "Item Delivered - Purchase Order";
-    String message = String.format(
-        "Your order has been delivered!\n" +
-        "Item: %s\n" +
-        "Purchase Order Number: %s\n" +
-        "Delivery Date: %s\n" +
-        "Please check and confirm the delivery.",
-        order.getProposal().getItemName(),
-        order.getPurchaseOrderNumber(),
-        order.getExpectedDeliveryDate()
-    );
-    
-    emailService.sendSimpleEmail(facultyEmail, subject, message);
-}
+
+    // Add this new method for delivery notification
+    private void notifyFacultyAboutDelivery(PurchaseOrder order) {
+        String facultyEmail = order.getProposal().getUser().getEmail();
+        String subject = "Item Delivered - Purchase Order";
+        String message = String.format(
+                "Your order has been delivered!\n" +
+                        "Item: %s\n" +
+                        "Purchase Order Number: %s\n" +
+                        "Delivery Date: %s\n" +
+                        "Please check and confirm the delivery.",
+                order.getProposal().getItemName(),
+                order.getPurchaseOrderNumber(),
+                order.getExpectedDeliveryDate());
+
+        emailService.sendSimpleEmail(facultyEmail, subject, message);
+    }
 
     private void notifyFacultyAboutOrder(PurchaseOrder order) {
         String facultyEmail = order.getProposal().getUser().getEmail();
         String subject = "Purchase Order Placed";
         String message = String.format(
-            "Your purchase order for %s has been placed.\n" +
-            "Tracking Order Number: %s\n" +
-            "Expected Cost: $%.2f",
-            order.getProposal().getItemName(),
-            order.getPurchaseOrderNumber(),
-            order.getFinalCost()
-        );
-        
+                "Your purchase order for %s has been placed.\n" +
+                        "Tracking Order Number: %s\n" +
+                        "Expected Cost: $%.2f",
+                order.getProposal().getItemName(),
+                order.getPurchaseOrderNumber(),
+                order.getFinalCost());
+
         emailService.sendSimpleEmail(facultyEmail, subject, message);
     }
 
@@ -139,16 +151,15 @@ public class PurchaseOrderService {
         String facultyEmail = order.getProposal().getUser().getEmail();
         String subject = "Purchase Order Status Update";
         String message = String.format(
-            "Your purchase order for %s has been updated.\n" +
-            "New Status: %s\n" +
-            "Expected Delivery: %s\n" +
-            "Tracking Order Number: %s",
-            order.getProposal().getItemName(),
-            order.getDeliveryStatus(),
-            order.getExpectedDeliveryDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm a")),
-            order.getPurchaseOrderNumber()
-        );
-        
+                "Your purchase order for %s has been updated.\n" +
+                        "New Status: %s\n" +
+                        "Expected Delivery: %s\n" +
+                        "Tracking Order Number: %s",
+                order.getProposal().getItemName(),
+                order.getDeliveryStatus(),
+                order.getExpectedDeliveryDate().format(DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm a")),
+                order.getPurchaseOrderNumber());
+
         emailService.sendSimpleEmail(facultyEmail, subject, message);
     }
 

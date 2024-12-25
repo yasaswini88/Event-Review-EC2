@@ -32,6 +32,7 @@ public class PurchaseOrderController {
         return order != null ? ResponseEntity.ok(order) : ResponseEntity.badRequest().build();
     }
 
+
     @PutMapping("/{orderId}/order-status")
     public ResponseEntity<PurchaseOrderDTO> updateOrderStatus(
             @PathVariable Long orderId,
@@ -40,13 +41,30 @@ public class PurchaseOrderController {
         return updatedOrder != null ? ResponseEntity.ok(updatedOrder) : ResponseEntity.notFound().build();
     }
 
+    // @PutMapping("/{orderId}/delivery-status")
+    // public ResponseEntity<PurchaseOrderDTO> updateDeliveryStatus(
+    //         @PathVariable Long orderId,
+    //         @RequestParam String newStatus,
+    //         @RequestParam LocalDateTime expectedDeliveryDate) {
+    //     PurchaseOrderDTO updatedOrder = purchaseOrderService.updateDeliveryStatus(orderId, newStatus, expectedDeliveryDate);
+    //     return updatedOrder != null ? ResponseEntity.ok(updatedOrder) : ResponseEntity.notFound().build();
+    // }
+
     @PutMapping("/{orderId}/delivery-status")
-    public ResponseEntity<PurchaseOrderDTO> updateDeliveryStatus(
-            @PathVariable Long orderId,
-            @RequestParam String newStatus,
-            @RequestParam LocalDateTime expectedDeliveryDate) {
-        PurchaseOrderDTO updatedOrder = purchaseOrderService.updateDeliveryStatus(orderId, newStatus, expectedDeliveryDate);
-        return updatedOrder != null ? ResponseEntity.ok(updatedOrder) : ResponseEntity.notFound().build();
-    }
+public ResponseEntity<PurchaseOrderDTO> updateDeliveryStatus(
+        @PathVariable Long orderId,
+        @RequestParam String newStatus,
+        @RequestParam LocalDateTime expectedDeliveryDate,
+        @RequestParam(required = false) String purchaseOrderNumber) {
+    
+    // Adjust your service call:
+    PurchaseOrderDTO updatedOrder = purchaseOrderService
+        .updateDeliveryStatus(orderId, newStatus, expectedDeliveryDate, purchaseOrderNumber);
+
+    return updatedOrder != null 
+           ? ResponseEntity.ok(updatedOrder) 
+           : ResponseEntity.notFound().build();
+}
+
 }
 
