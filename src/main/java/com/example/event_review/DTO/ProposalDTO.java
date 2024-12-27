@@ -18,7 +18,23 @@ public class ProposalDTO {
     private Long departmentId;
     private String orderStatus;
 private String deliveryStatus;
+      // so the front end can show the item description
+private String requesterName;     // to display who requested it
+private String approverName; 
 
+public String getRequesterName() {
+    return requesterName;
+}
+public void setRequesterName(String requesterName) {
+    this.requesterName = requesterName;
+}
+
+public String getApproverName() {
+    return approverName;
+}
+public void setApproverName(String approverName) {
+    this.approverName = approverName;
+}
 
 public String getOrderStatus() {
     return orderStatus;
@@ -36,7 +52,7 @@ public void setDeliveryStatus(String deliveryStatus) {
     this.deliveryStatus = deliveryStatus;
 }
 
-    public Long getDepartmentId() {
+    public Long getDepartmentId() { 
         return departmentId;
     }
     public void setDepartmentId(Long departmentId) {

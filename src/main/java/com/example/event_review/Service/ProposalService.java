@@ -290,13 +290,52 @@ private PurchaseOrderRepo purchaseOrderRepo;
         }
     }
 
+    // public ProposalDTO convertToDTO(Proposal proposal) {
+    //     ProposalDTO proposalDTO = new ProposalDTO();
+    //     proposalDTO.setProposalId(proposal.getProposalId());
+    //     proposalDTO.setUserId(proposal.getUser().getUserId());
+    //     proposalDTO.setItemName(proposal.getItemName());
+    //     proposalDTO.setCategory(proposal.getCategory());
+    //     proposalDTO.setDescription(proposal.getDescription());
+    //     proposalDTO.setQuantity(proposal.getQuantity());
+    //     proposalDTO.setEstimatedCost(proposal.getEstimatedCost());
+    //     proposalDTO.setVendorInfo(proposal.getVendorInfo());
+    //     proposalDTO.setBusinessPurpose(proposal.getBusinessPurpose());
+    //     proposalDTO.setStatus(proposal.getStatus());
+    //     proposalDTO.setProposalDate(proposal.getProposalDate());
+    //     proposalDTO.setCurrentApproverId(
+    //             proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null);
+    //     proposalDTO.setDepartmentId(proposal.getDepartment().getDeptId());
+
+    //     if ("APPROVED".equalsIgnoreCase(proposal.getStatus())) {
+    //     // Find the purchase order by proposalId:
+    //     PurchaseOrder purchaseOrder = purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
+    //     if (purchaseOrder != null) {
+    //         proposalDTO.setOrderStatus(purchaseOrder.getOrderStatus());
+    //         proposalDTO.setDeliveryStatus(purchaseOrder.getDeliveryStatus());
+    //     }
+    // }
+
+    //     return proposalDTO;
+    // }
+    // This method is used to convert a Proposal entity to a ProposalDTO object.
+    // The Proposal entity properties are set to the corresponding properties of the
+    // ProposalDTO object.
+    // The user, current approver, and department IDs are also set in the
+    // ProposalDTO object.
+    // The converted ProposalDTO object is then returned.
+
     public ProposalDTO convertToDTO(Proposal proposal) {
         ProposalDTO proposalDTO = new ProposalDTO();
+    
         proposalDTO.setProposalId(proposal.getProposalId());
         proposalDTO.setUserId(proposal.getUser().getUserId());
         proposalDTO.setItemName(proposal.getItemName());
         proposalDTO.setCategory(proposal.getCategory());
+    
+        // Already in your snippet, ensures the "description" field is included:
         proposalDTO.setDescription(proposal.getDescription());
+    
         proposalDTO.setQuantity(proposal.getQuantity());
         proposalDTO.setEstimatedCost(proposal.getEstimatedCost());
         proposalDTO.setVendorInfo(proposal.getVendorInfo());
@@ -304,26 +343,38 @@ private PurchaseOrderRepo purchaseOrderRepo;
         proposalDTO.setStatus(proposal.getStatus());
         proposalDTO.setProposalDate(proposal.getProposalDate());
         proposalDTO.setCurrentApproverId(
-                proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null);
+                proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null
+        );
         proposalDTO.setDepartmentId(proposal.getDepartment().getDeptId());
-
-        if ("APPROVED".equalsIgnoreCase(proposal.getStatus())) {
-        // Find the purchase order by proposalId:
-        PurchaseOrder purchaseOrder = purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
-        if (purchaseOrder != null) {
-            proposalDTO.setOrderStatus(purchaseOrder.getOrderStatus());
-            proposalDTO.setDeliveryStatus(purchaseOrder.getDeliveryStatus());
+    
+        // ============== NEW LINES FOR REQUESTER/APPROVER NAMES ==============
+        // (Assuming user.getEmail() is the best field to display. 
+        //  If you have user.getFirstName() / getLastName(), feel free to adapt.)
+    
+        // 1) Requester name (the person who created the proposal)
+        proposalDTO.setRequesterName(proposal.getUser().getEmail());
+    
+        // 2) Approver name (only if there's a currentApprover)
+        if (proposal.getCurrentApprover() != null) {
+            proposalDTO.setApproverName(proposal.getCurrentApprover().getEmail());
+        } else {
+            proposalDTO.setApproverName(null); 
         }
-    }
-
+        // =====================================================================
+    
+        // If the proposal is approved, also show order/delivery fields (as you already do):
+        if ("APPROVED".equalsIgnoreCase(proposal.getStatus())) {
+            PurchaseOrder purchaseOrder =
+                purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
+            if (purchaseOrder != null) {
+                proposalDTO.setOrderStatus(purchaseOrder.getOrderStatus());
+                proposalDTO.setDeliveryStatus(purchaseOrder.getDeliveryStatus());
+            }
+        }
+    
         return proposalDTO;
     }
-    // This method is used to convert a Proposal entity to a ProposalDTO object.
-    // The Proposal entity properties are set to the corresponding properties of the
-    // ProposalDTO object.
-    // The user, current approver, and department IDs are also set in the
-    // ProposalDTO object.
-    // The converted ProposalDTO object is then returned.
+    
 
     public Proposal convertToEntity(ProposalDTO proposalDTO) {
         Proposal proposal = new Proposal();
