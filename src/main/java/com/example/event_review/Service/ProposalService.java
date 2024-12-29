@@ -2,10 +2,12 @@ package com.example.event_review.Service;
 
 import com.example.event_review.DTO.ProposalDTO;
 import com.example.event_review.Entity.Department;
+import com.example.event_review.Entity.FundingSource;
 import com.example.event_review.Entity.Proposal;
 import com.example.event_review.Entity.PurchaseOrder;
 import com.example.event_review.Entity.User;
 import com.example.event_review.Repo.DepartmentRepo;
+import com.example.event_review.Repo.FundingSourceRepo;
 import com.example.event_review.Repo.ProposalRepo;
 import com.example.event_review.Repo.PurchaseOrderRepo;
 import com.example.event_review.Repo.UserRepo;
@@ -43,6 +45,9 @@ public class ProposalService {
 
     @Autowired
 private PurchaseOrderRepo purchaseOrderRepo;
+
+@Autowired
+private FundingSourceRepo fundingSourceRepo;
 
 
     public List<ProposalDTO> getAllProposals() {
@@ -266,6 +271,46 @@ private PurchaseOrderRepo purchaseOrderRepo;
         }
     }
 
+
+    public ProposalDTO addComment(Long proposalId, Long approverId, Long fundingSourceId, String comments) {
+        try {
+            Optional<Proposal> existingProposalOpt = proposalRepo.findById(proposalId);
+            Optional<User> approverOpt = userRepo.findById(approverId);
+    
+            if (!existingProposalOpt.isPresent() || !approverOpt.isPresent()) {
+                return null;
+            }
+    
+            Proposal proposal = existingProposalOpt.get();
+            User approver = approverOpt.get();
+    
+            // Optional funding source logic
+            FundingSource fundingSource = null;
+            if (fundingSourceId != null) {
+                Optional<FundingSource> fundingSourceOpt = fundingSourceRepo.findById(fundingSourceId);
+                if (fundingSourceOpt.isPresent()) {
+                    fundingSource = fundingSourceOpt.get();
+                }
+            }
+    
+            // Add approval history entry
+            approvalHistoryService.addHistoryEntry(
+                proposalId,
+                approverId,
+                fundingSource != null ? fundingSource.getSourceId() : null,
+                proposal.getStatus(),
+                proposal.getStatus(), // Status remains the same
+                comments
+            );
+    
+            return convertToDTO(proposal);
+        } catch (Exception e) {
+            logger.error("Error adding comment: ", e);
+            return null;
+        }
+    }
+    
+
     public List<ProposalDTO> getProposalsByApproverAndStatus(Long approverId, String status) {
         try {
             return proposalRepo.findByCurrentApprover_UserIdAndStatus(approverId, status)
@@ -290,41 +335,7 @@ private PurchaseOrderRepo purchaseOrderRepo;
         }
     }
 
-    // public ProposalDTO convertToDTO(Proposal proposal) {
-    //     ProposalDTO proposalDTO = new ProposalDTO();
-    //     proposalDTO.setProposalId(proposal.getProposalId());
-    //     proposalDTO.setUserId(proposal.getUser().getUserId());
-    //     proposalDTO.setItemName(proposal.getItemName());
-    //     proposalDTO.setCategory(proposal.getCategory());
-    //     proposalDTO.setDescription(proposal.getDescription());
-    //     proposalDTO.setQuantity(proposal.getQuantity());
-    //     proposalDTO.setEstimatedCost(proposal.getEstimatedCost());
-    //     proposalDTO.setVendorInfo(proposal.getVendorInfo());
-    //     proposalDTO.setBusinessPurpose(proposal.getBusinessPurpose());
-    //     proposalDTO.setStatus(proposal.getStatus());
-    //     proposalDTO.setProposalDate(proposal.getProposalDate());
-    //     proposalDTO.setCurrentApproverId(
-    //             proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null);
-    //     proposalDTO.setDepartmentId(proposal.getDepartment().getDeptId());
-
-    //     if ("APPROVED".equalsIgnoreCase(proposal.getStatus())) {
-    //     // Find the purchase order by proposalId:
-    //     PurchaseOrder purchaseOrder = purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
-    //     if (purchaseOrder != null) {
-    //         proposalDTO.setOrderStatus(purchaseOrder.getOrderStatus());
-    //         proposalDTO.setDeliveryStatus(purchaseOrder.getDeliveryStatus());
-    //     }
-    // }
-
-    //     return proposalDTO;
-    // }
-    // This method is used to convert a Proposal entity to a ProposalDTO object.
-    // The Proposal entity properties are set to the corresponding properties of the
-    // ProposalDTO object.
-    // The user, current approver, and department IDs are also set in the
-    // ProposalDTO object.
-    // The converted ProposalDTO object is then returned.
-
+    
     public ProposalDTO convertToDTO(Proposal proposal) {
         ProposalDTO proposalDTO = new ProposalDTO();
     
