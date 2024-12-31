@@ -118,5 +118,19 @@ public List<ProposalDTO> getProposalsByApproverIdAndStatus(
     return proposalService.getProposalsByApproverAndStatus(approverId, status);
 }
 
+@PutMapping("/{id}/comment")
+public ResponseEntity<ProposalDTO> addComment(
+    @PathVariable Long id,
+    @RequestParam Long approverId,
+    @RequestParam(required = false) Long fundingSourceId,
+    @RequestParam(required = false) String comments
+) {
+    ProposalDTO updatedProposal = proposalService.addComment(id, approverId, fundingSourceId, comments);
+    return updatedProposal != null ?
+            ResponseEntity.ok(updatedProposal) :
+            ResponseEntity.notFound().build();
+}
+
+
 
 }

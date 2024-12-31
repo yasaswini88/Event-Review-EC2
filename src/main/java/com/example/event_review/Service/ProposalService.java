@@ -2,10 +2,14 @@ package com.example.event_review.Service;
 
 import com.example.event_review.DTO.ProposalDTO;
 import com.example.event_review.Entity.Department;
+import com.example.event_review.Entity.FundingSource;
 import com.example.event_review.Entity.Proposal;
+import com.example.event_review.Entity.PurchaseOrder;
 import com.example.event_review.Entity.User;
 import com.example.event_review.Repo.DepartmentRepo;
+import com.example.event_review.Repo.FundingSourceRepo;
 import com.example.event_review.Repo.ProposalRepo;
+import com.example.event_review.Repo.PurchaseOrderRepo;
 import com.example.event_review.Repo.UserRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +42,13 @@ public class ProposalService {
 
     @Autowired
     private ApprovalHistoryService approvalHistoryService;
+
+    @Autowired
+private PurchaseOrderRepo purchaseOrderRepo;
+
+@Autowired
+private FundingSourceRepo fundingSourceRepo;
+
 
     public List<ProposalDTO> getAllProposals() {
         try {
@@ -149,7 +160,15 @@ public class ProposalService {
                         savedProposal.getEstimatedCost(),
                         savedProposal.getBusinessPurpose());
 
-                emailService.sendSimpleEmail(approver.getEmail(), subject, message);
+                // This URL points to your new route: /proposal/:proposalId
+                String link = "http://35.173.220.149:3000/proposal/" + savedProposal.getProposalId();
+
+                // Now call sendEmailWithLink
+                emailService.sendEmailWithLink(
+                        approver.getEmail(),
+                        subject,
+                        link,
+                        message);
             }
 
             return convertToDTO(savedProposal); // The saved proposal is converted to a ProposalDTO object and returned.
@@ -220,6 +239,7 @@ public class ProposalService {
                 // Add the history entry
                 approvalHistoryService.addHistoryEntry(id, approverId, fundingSourceId, oldStatus, newStatus, comments);
                 // Send email to the faculty member who created the proposal
+                // Send email to the faculty member who created the proposal
                 User faculty = updatedProposal.getUser();
                 String facultySubject = "Your Proposal Status Has Been Updated";
                 String facultyMessage = String.format(
@@ -233,7 +253,13 @@ public class ProposalService {
                         newStatus,
                         comments != null ? comments : "No comments provided");
 
-                emailService.sendSimpleEmail(faculty.getEmail(), facultySubject, facultyMessage);
+                String link = "http://35.173.220.149:3000/proposal/" + updatedProposal.getProposalId();
+
+                emailService.sendEmailWithLink(
+                        faculty.getEmail(),
+                        facultySubject,
+                        link,
+                        facultyMessage);
 
                 // Convert and return the updated proposal
                 return convertToDTO(updatedProposal);
@@ -244,6 +270,46 @@ public class ProposalService {
             return null;
         }
     }
+
+
+    public ProposalDTO addComment(Long proposalId, Long approverId, Long fundingSourceId, String comments) {
+        try {
+            Optional<Proposal> existingProposalOpt = proposalRepo.findById(proposalId);
+            Optional<User> approverOpt = userRepo.findById(approverId);
+    
+            if (!existingProposalOpt.isPresent() || !approverOpt.isPresent()) {
+                return null;
+            }
+    
+            Proposal proposal = existingProposalOpt.get();
+            User approver = approverOpt.get();
+    
+            // Optional funding source logic
+            FundingSource fundingSource = null;
+            if (fundingSourceId != null) {
+                Optional<FundingSource> fundingSourceOpt = fundingSourceRepo.findById(fundingSourceId);
+                if (fundingSourceOpt.isPresent()) {
+                    fundingSource = fundingSourceOpt.get();
+                }
+            }
+    
+            // Add approval history entry
+            approvalHistoryService.addHistoryEntry(
+                proposalId,
+                approverId,
+                fundingSource != null ? fundingSource.getSourceId() : null,
+                proposal.getStatus(),
+                proposal.getStatus(), // Status remains the same
+                comments
+            );
+    
+            return convertToDTO(proposal);
+        } catch (Exception e) {
+            logger.error("Error adding comment: ", e);
+            return null;
+        }
+    }
+    
 
     public List<ProposalDTO> getProposalsByApproverAndStatus(Long approverId, String status) {
         try {
@@ -257,7 +323,6 @@ public class ProposalService {
         }
     }
 
-    
     // This method is used to update the status of a proposal. It first checks if
     // the proposal and approver exist, then updates the status of the proposal with
     // the new status provided.
@@ -270,13 +335,18 @@ public class ProposalService {
         }
     }
 
+    
     public ProposalDTO convertToDTO(Proposal proposal) {
         ProposalDTO proposalDTO = new ProposalDTO();
+    
         proposalDTO.setProposalId(proposal.getProposalId());
         proposalDTO.setUserId(proposal.getUser().getUserId());
         proposalDTO.setItemName(proposal.getItemName());
         proposalDTO.setCategory(proposal.getCategory());
+    
+        // Already in your snippet, ensures the "description" field is included:
         proposalDTO.setDescription(proposal.getDescription());
+    
         proposalDTO.setQuantity(proposal.getQuantity());
         proposalDTO.setEstimatedCost(proposal.getEstimatedCost());
         proposalDTO.setVendorInfo(proposal.getVendorInfo());
@@ -284,16 +354,38 @@ public class ProposalService {
         proposalDTO.setStatus(proposal.getStatus());
         proposalDTO.setProposalDate(proposal.getProposalDate());
         proposalDTO.setCurrentApproverId(
-                proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null);
+                proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null
+        );
         proposalDTO.setDepartmentId(proposal.getDepartment().getDeptId());
+    
+        // ============== NEW LINES FOR REQUESTER/APPROVER NAMES ==============
+        // (Assuming user.getEmail() is the best field to display. 
+        //  If you have user.getFirstName() / getLastName(), feel free to adapt.)
+    
+        // 1) Requester name (the person who created the proposal)
+        proposalDTO.setRequesterName(proposal.getUser().getEmail());
+    
+        // 2) Approver name (only if there's a currentApprover)
+        if (proposal.getCurrentApprover() != null) {
+            proposalDTO.setApproverName(proposal.getCurrentApprover().getEmail());
+        } else {
+            proposalDTO.setApproverName(null); 
+        }
+        // =====================================================================
+    
+        // If the proposal is approved, also show order/delivery fields (as you already do):
+        if ("APPROVED".equalsIgnoreCase(proposal.getStatus())) {
+            PurchaseOrder purchaseOrder =
+                purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
+            if (purchaseOrder != null) {
+                proposalDTO.setOrderStatus(purchaseOrder.getOrderStatus());
+                proposalDTO.setDeliveryStatus(purchaseOrder.getDeliveryStatus());
+            }
+        }
+    
         return proposalDTO;
     }
-    // This method is used to convert a Proposal entity to a ProposalDTO object.
-    // The Proposal entity properties are set to the corresponding properties of the
-    // ProposalDTO object.
-    // The user, current approver, and department IDs are also set in the
-    // ProposalDTO object.
-    // The converted ProposalDTO object is then returned.
+    
 
     public Proposal convertToEntity(ProposalDTO proposalDTO) {
         Proposal proposal = new Proposal();

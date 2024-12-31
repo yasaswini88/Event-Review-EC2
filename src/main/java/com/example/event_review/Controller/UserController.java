@@ -187,9 +187,10 @@ public ResponseEntity<UserDTO> googleLogin(@RequestBody GoogleLoginRequest reque
 
     // User Profile Update
     @PutMapping("/users/{userId}")
-    public ResponseEntity<User> updateUserDetails(@PathVariable Long userId, @RequestBody User updatedUser) {
-        return userService.updateUserDetails(userId, updatedUser)
-                .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-    }
+public ResponseEntity<User> updateUserDetails(@PathVariable Long userId, @RequestBody User updatedUser) {
+    return userService.updateUserDetails(userId, updatedUser)
+            .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
+            .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+}
+
 }

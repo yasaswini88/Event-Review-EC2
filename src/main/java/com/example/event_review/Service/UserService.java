@@ -222,21 +222,30 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
     public Optional<User> updateUserDetails(Long userId, User updatedUser) {
         return userRepo.findByUserId(userId)
                 .map(user -> {
+                    // Update basic fields
                     user.setFirstName(updatedUser.getFirstName());
                     user.setLastName(updatedUser.getLastName());
                     user.setEmail(updatedUser.getEmail());
                     user.setPhoneNumber(updatedUser.getPhoneNumber());
-                    // user.setPosition(updatedUser.getPosition());
                     user.setGender(updatedUser.getGender());
-
+    
+                    // Update password if provided
                     if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
                         user.setPassword(updatedUser.getPassword());
-                        // user.setConfirmPassword(updatedUser.getConfirmPassword());
                     }
-
+    
+                    // NEW: Update role if provided
+                    if (updatedUser.getRoles() != null && updatedUser.getRoles().getRoleId() != null) {
+                        Long newRoleId = updatedUser.getRoles().getRoleId();
+                        Roles newRole = rolesRepo.findById(newRoleId)
+                                .orElseThrow(() -> new RuntimeException("Role not found with ID: " + newRoleId));
+                        user.setRoles(newRole);
+                    }
+    
                     return userRepo.save(user);
                 });
     }
+    
 
     // Utility Methods
     private String generateRandomCode() {
