@@ -65,28 +65,7 @@ private JwtUtils jwtUtils;
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Authentication
-    // @PostMapping("/login")
-    // public ResponseEntity<User> login(@RequestBody LoginRequest loginRequest) {
-    //     return userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword())
-    //             .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-    //             .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
-    // }
-
-    // @PostMapping("/login")
-    // public ResponseEntity<UserDTO> login(@RequestBody LoginRequest loginRequest) {
-    //     System.out.println("Testing jwt-feature branch: Login endpoint accessed");
-    //     Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
-        
-    //     if (userOpt.isPresent()) {
-    //         User user = userOpt.get();
-    //         // Now we can call the public convertToDTO method on userService
-    //         UserDTO userDTO = userService.convertToDTO(user);
-    //         return new ResponseEntity<>(userDTO, HttpStatus.OK);
-    //     } else {
-    //         return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
-    //     }
-    // }
+   
 
     @PostMapping("/login")
 public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
