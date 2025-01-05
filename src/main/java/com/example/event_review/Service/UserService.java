@@ -105,6 +105,54 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
 }
 
 
+public Optional<User> handleGoogleLoginAsUser(String credential) {
+    try {
+        // 1. Verify the Google token
+        GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
+        if (idToken == null) {
+            // Token verification failed
+            return Optional.empty();
+        }
+
+        // 2. Extract email and optionally other claims from the token payload
+        GoogleIdToken.Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+        String givenName = (String) payload.get("given_name");    // optional
+        String familyName = (String) payload.get("family_name");  // optional
+
+        // 3. Check if user already exists in the DB
+        Optional<User> existingUserOpt = userRepo.findByEmail(email);
+        User user;
+        if (existingUserOpt.isPresent()) {
+            // 3a. If user already exists, reuse it
+            user = existingUserOpt.get();
+        } else {
+            // 3b. If user doesn't exist, create a new one
+            Roles facultyRole = rolesRepo.findById(2L)
+                .orElseThrow(() -> new RuntimeException("Faculty role with ID=2 not found!"));
+
+            // Create new user
+            user = new User();
+            user.setEmail(email);
+            user.setFirstName(givenName);
+            user.setLastName(familyName);
+            user.setPassword("GOOGLE_SSO"); // or null, if you prefer
+            user.setRoles(facultyRole);
+            
+            // Save user (automatically assigns userId)
+            user = userRepo.save(user);
+        }
+
+        // 4. Return the newly created or existing user
+        return Optional.of(user);
+
+    } catch (Exception e) {
+        // If there's an error verifying or processing the token
+        throw new RuntimeException("Error processing Google login", e);
+    }
+}
+
+
 
     public List<UserDTO> getAllUsers() {
         return userRepo.findAll()

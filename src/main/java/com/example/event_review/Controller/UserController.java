@@ -2,6 +2,7 @@ package com.example.event_review.Controller;
 
 import com.example.event_review.DTO.*;
 import com.example.event_review.Entity.User;
+import com.example.event_review.Repo.UserRepo;
 import com.example.event_review.Service.UserService;
 import com.example.event_review.security.jwt.JwtUtils;
 
@@ -20,10 +21,46 @@ public class UserController {
     private UserService userService;
 
     @Autowired
-private JwtUtils jwtUtils;
+    private JwtUtils jwtUtils;
 
-    // @Autowired
-    // private EmailService emailService;
+    @Autowired
+    private UserRepo userRepo;
+
+    // New endpoint to decode token and fetch user details
+    @GetMapping("/decode-token")
+    public ResponseEntity<?> decodeToken(@RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            String token = authorizationHeader.substring(7); // remove "Bearer "
+            if (!jwtUtils.validateJwtToken(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Token");
+            }
+    
+            // Extract email from JWT
+            String email = jwtUtils.getUserNameFromJwtToken(token);
+    
+            // Find user in DB
+            Optional<User> userOpt = userRepo.findByEmail(email);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+    
+                // Return user details, including numeric roleId
+                Map<String, Object> userDetails = new HashMap<>();
+                userDetails.put("userId", user.getUserId());
+                userDetails.put("email", user.getEmail());
+                userDetails.put("roleId", user.getRoles().getRoleId());  // <--- numeric
+                userDetails.put("firstName", user.getFirstName());
+                userDetails.put("lastName", user.getLastName());
+                // etc.
+    
+                return ResponseEntity.ok(userDetails);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error decoding token");
+        }
+    }
+    
 
     // Basic CRUD Operations
     @GetMapping("/users")
@@ -68,27 +105,24 @@ private JwtUtils jwtUtils;
    
 
     @PostMapping("/login")
-public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
-    Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
-
-    if (userOpt.isPresent()) {
-        User user = userOpt.get();
-
-        // 1) generate token
-        String token = jwtUtils.generateJwtToken(user.getEmail());
-
-        // 2) create a response body
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", token);
-        // also put user details or anything else you want
-        response.put("user", userService.convertToDTO(user));
-
-        // 3) Return 200 + token + user data
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    } else {
-        return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest loginRequest) {
+       Optional<User> userOpt = userService.loginUser(loginRequest.getEmail(), loginRequest.getPassword());
+    
+       if (userOpt.isPresent()) {
+           User user = userOpt.get();
+    
+           // generate token with custom claims for userId & role
+           String token = jwtUtils.generateJwtToken(user);
+    
+           Map<String, String> response = new HashMap<>();
+           response.put("token", token);
+    
+           return ResponseEntity.ok(response);
+       } else {
+           return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+       }
     }
-}
+    
     
 
 
@@ -129,39 +163,40 @@ public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest login
         }
     }
 
-    // @PostMapping("/google-login")
-    // public ResponseEntity<User> googleLogin(@RequestBody GoogleLoginRequest
-    // request) {
-    // try {
-    // return userService.handleGoogleLogin(request.getCredential())
-    // .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-    // .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
-    // } catch (Exception e) {
-    // return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-    // }
-    // }
+ 
 
-    // @PostMapping("/google-login")
-    // public ResponseEntity<User> googleLogin(@RequestBody GoogleLoginRequest request) {
-    //     try {
-    //         return userService.handleGoogleLogin(request.getCredential())
-    //                 .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-    //                 .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED)); // No user found, return 401
-    //     } catch (Exception e) {
-    //         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Internal error
-    //     }
-    // }
-
-    @PostMapping("/google-login")
-public ResponseEntity<UserDTO> googleLogin(@RequestBody GoogleLoginRequest request) {
+//     @PostMapping("/google-login")
+// public ResponseEntity<UserDTO> googleLogin(@RequestBody GoogleLoginRequest request) {
+//     try {
+//         return userService.handleGoogleLogin(request.getCredential())
+//                 .map(userDTO -> new ResponseEntity<>(userDTO, HttpStatus.OK))
+//                 .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED)); // No user found, return 401
+//     } catch (Exception e) {
+//         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Internal error
+//     }
+// }
+@PostMapping("/google-login")
+public ResponseEntity<Map<String, String>> googleLogin(@RequestBody GoogleLoginRequest request) {
     try {
-        return userService.handleGoogleLogin(request.getCredential())
-                .map(userDTO -> new ResponseEntity<>(userDTO, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED)); // No user found, return 401
+        Optional<User> userOpt = userService.handleGoogleLoginAsUser(request.getCredential());
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+
+            // generate the JWT with role & userId
+            String token = jwtUtils.generateJwtToken(user);
+
+            // return just the token
+            Map<String, String> response = new HashMap<>();
+            response.put("token", token);
+            return ResponseEntity.ok(response);
+        } else {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
     } catch (Exception e) {
-        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Internal error
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
+
 
 
     // User Profile Update
