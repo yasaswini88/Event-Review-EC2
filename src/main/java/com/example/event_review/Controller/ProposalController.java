@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/proposals")
@@ -26,12 +27,45 @@ public class ProposalController {
         return proposalService.getAllProposals();
     }
 
+    // @GetMapping("/{id}")
+    // public ResponseEntity<ProposalDTO> getProposalById(@PathVariable Long id) {
+    //     return proposalService.getProposalById(id)
+    //             .map(ResponseEntity::ok)
+    //             .orElse(ResponseEntity.notFound().build());
+    // }
+
     @GetMapping("/{id}")
-    public ResponseEntity<ProposalDTO> getProposalById(@PathVariable Long id) {
-        return proposalService.getProposalById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+public ResponseEntity<ProposalDTO> getProposalById(
+    @PathVariable Long id,
+    @RequestParam Long currentUserId    // <--- NEW: which user is requesting?
+) {
+    // Now we want to do two things:
+    //   1) Retrieve the proposal by "id"
+    //   2) Check if "currentUserId" is authorized to view it.
+    
+    Optional<ProposalDTO> proposalOpt = proposalService.getProposalById(id);
+    if (!proposalOpt.isPresent()) {
+        // If the proposal doesn't exist, return 404
+        return ResponseEntity.notFound().build();
     }
+
+    ProposalDTO proposalDTO = proposalOpt.get();
+
+    // 3) We must verify that currentUserId can see this proposal.
+    // We'll write a small check here or call a separate method in the service.
+    
+    boolean authorized = proposalService.isUserAuthorizedToViewProposal(
+        proposalDTO, currentUserId
+    );
+
+    if (!authorized) {
+        // user is not the right approver, not the requestor, and not an admin
+        return ResponseEntity.status(403).build(); // 403 Forbidden
+    }
+
+    // If authorized, return the proposal
+    return ResponseEntity.ok(proposalDTO);
+}
 
     @GetMapping("/user/{userId}")
     public List<ProposalDTO> getProposalsByUserId(@PathVariable Long userId) {

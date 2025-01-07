@@ -86,6 +86,38 @@ private FundingSourceRepo fundingSourceRepo;
         }
     }
 
+    public boolean isUserAuthorizedToViewProposal(ProposalDTO proposalDTO, Long currentUserId) {
+        if (currentUserId == null) {
+            return false;
+        }
+    
+        // 1) If user is the creator (requester)
+        if (proposalDTO.getUserId().equals(currentUserId)) {
+            return true;
+        }
+    
+        // 2) If user is the current approver
+        if (proposalDTO.getCurrentApproverId() != null 
+            && proposalDTO.getCurrentApproverId().equals(currentUserId)) {
+            return true;
+        }
+    
+        // 3) If user is an admin (roleId = 1, etc.)
+        //    We'll fetch the user from userRepo and check roles
+        Optional<User> userOpt = userRepo.findById(currentUserId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // If roleId = 1 means Admin
+            if (user.getRoles() != null && user.getRoles().getRoleId() == 1L) {
+                return true;
+            }
+        }
+    
+        // Otherwise, not authorized
+        return false;
+    }
+
+    
     public List<ProposalDTO> getProposalsByApproverId(Long approverId) {
         try {
             return proposalRepo.findByCurrentApprover_UserId(approverId).stream() // findByCurrentApprover_UserId()
@@ -161,7 +193,7 @@ private FundingSourceRepo fundingSourceRepo;
                         savedProposal.getBusinessPurpose());
 
                 // This URL points to your new route: /proposal/:proposalId
-                String link = "http://35.173.220.149:3000/proposal/" + savedProposal.getProposalId();
+                String link = "https://ravi-ai.com/proposal/" + savedProposal.getProposalId();
 
                 // Now call sendEmailWithLink
                 emailService.sendEmailWithLink(
@@ -253,7 +285,7 @@ private FundingSourceRepo fundingSourceRepo;
                         newStatus,
                         comments != null ? comments : "No comments provided");
 
-                String link = "http://35.173.220.149:3000/proposal/" + updatedProposal.getProposalId();
+                String link = "https://ravi-ai.com/proposal/" + updatedProposal.getProposalId();
 
                 emailService.sendEmailWithLink(
                         faculty.getEmail(),

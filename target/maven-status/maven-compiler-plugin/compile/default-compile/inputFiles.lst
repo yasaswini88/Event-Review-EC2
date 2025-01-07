@@ -1,5 +1,5 @@
-/home/ec2-user/event-review/src/main/java/com/example/event_review/Config/CorsConfig.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Config/GoogleAuthConfig.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Config/WebConfig.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ApprovalHistoryController.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ApproverDashboardController.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/DepartmentController.java
