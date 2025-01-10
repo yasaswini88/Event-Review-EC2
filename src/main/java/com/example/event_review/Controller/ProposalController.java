@@ -66,6 +66,35 @@ public ResponseEntity<ProposalDTO> getProposalById(
     // If authorized, return the proposal
     return ResponseEntity.ok(proposalDTO);
 }
+// @GetMapping("/{id}")
+// public ResponseEntity<ProposalDTO> getProposalById(
+//     @PathVariable Long id,
+//     @RequestParam(required = false) Long currentUserId
+// ) {
+//     // 1) Retrieve the proposal
+//     Optional<ProposalDTO> proposalOpt = proposalService.getProposalById(id);
+//     if (!proposalOpt.isPresent()) {
+//         // No such proposal => 404
+//         return ResponseEntity.notFound().build();
+//     }
+//     ProposalDTO proposalDTO = proposalOpt.get();
+
+//     // 2) If no currentUserId => 403
+//     if (currentUserId == null) {
+//         return ResponseEntity.status(403).build();
+//     }
+
+//     // 3) Check isUserAuthorizedToViewProposal
+//     boolean allowed = proposalService.isUserAuthorizedToViewProposal(proposalDTO, currentUserId);
+//     if (!allowed) {
+//         // => 403
+//         return ResponseEntity.status(403).build();
+//     }
+
+//     // else => 200 OK
+//     return ResponseEntity.ok(proposalDTO);
+// }
+
 
     @GetMapping("/user/{userId}")
     public List<ProposalDTO> getProposalsByUserId(@PathVariable Long userId) {

@@ -44,11 +44,13 @@ public class ProposalService {
     private ApprovalHistoryService approvalHistoryService;
 
     @Autowired
-private PurchaseOrderRepo purchaseOrderRepo;
+    private PurchaseOrderRepo purchaseOrderRepo;
 
-@Autowired
-private FundingSourceRepo fundingSourceRepo;
+    @Autowired
+    private FundingSourceRepo fundingSourceRepo;
 
+    @Autowired
+    private ApproverBudgetService approverBudgetService;
 
     public List<ProposalDTO> getAllProposals() {
         try {
@@ -86,38 +88,82 @@ private FundingSourceRepo fundingSourceRepo;
         }
     }
 
+    // public boolean isUserAuthorizedToViewProposal(ProposalDTO proposalDTO, Long
+    // currentUserId) {
+    // if (currentUserId == null) {
+    // return false; // no user => not authorized
+    // }
+
+    // // Look up the requesting user from DB:
+    // Optional<User> userOpt = userRepo.findById(currentUserId);
+    // if (!userOpt.isPresent()) {
+    // return false;
+    // }
+    // User user = userOpt.get();
+    // if (user.getRoles() == null) {
+    // return false;
+    // }
+
+    // Long roleId = user.getRoles().getRoleId();
+    // switch (roleId.intValue()) {
+    // case 1: // Admin
+    // case 4: // Purchaser
+    // // Admin or Purchaser => always allowed
+    // return true;
+
+    // case 2: // Faculty
+    // // Allowed only if they are the creator
+    // return proposalDTO.getUserId().equals(currentUserId);
+
+    // case 3: // Approver
+    // // Allowed only if they are the currentApprover
+    // // (proposalDTO.getCurrentApproverId() might be null if no approver assigned
+    // yet)
+    // if (proposalDTO.getCurrentApproverId() != null
+    // && proposalDTO.getCurrentApproverId().equals(currentUserId)) {
+    // return true;
+    // }
+    // return false;
+
+    // default:
+    // // Any unknown role => not authorized
+    // return false;
+    // }
+    // }
     public boolean isUserAuthorizedToViewProposal(ProposalDTO proposalDTO, Long currentUserId) {
         if (currentUserId == null) {
+            return false; // no user => not authorized
+        }
+
+        Optional<User> userOpt = userRepo.findById(currentUserId);
+        if (!userOpt.isPresent()) {
             return false;
         }
-    
-        // 1) If user is the creator (requester)
-        if (proposalDTO.getUserId().equals(currentUserId)) {
-            return true;
+        User user = userOpt.get();
+
+        if (user.getRoles() == null) {
+            return false;
         }
-    
-        // 2) If user is the current approver
-        if (proposalDTO.getCurrentApproverId() != null 
-            && proposalDTO.getCurrentApproverId().equals(currentUserId)) {
-            return true;
-        }
-    
-        // 3) If user is an admin (roleId = 1, etc.)
-        //    We'll fetch the user from userRepo and check roles
-        Optional<User> userOpt = userRepo.findById(currentUserId);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            // If roleId = 1 means Admin
-            if (user.getRoles() != null && user.getRoles().getRoleId() == 1L) {
+
+        Long roleId = user.getRoles().getRoleId();
+
+        switch (roleId.intValue()) {
+            case 1: // Admin => can see all
+            case 4: // Purchaser => can see all
                 return true;
-            }
+
+            case 2: // Faculty => can only see proposals they created
+                return proposalDTO.getUserId().equals(currentUserId);
+
+            case 3: // Approver => can only see proposals where they are the currentApprover
+                return proposalDTO.getCurrentApproverId() != null
+                        && proposalDTO.getCurrentApproverId().equals(currentUserId);
+
+            default:
+                return false;
         }
-    
-        // Otherwise, not authorized
-        return false;
     }
 
-    
     public List<ProposalDTO> getProposalsByApproverId(Long approverId) {
         try {
             return proposalRepo.findByCurrentApprover_UserId(approverId).stream() // findByCurrentApprover_UserId()
@@ -193,7 +239,10 @@ private FundingSourceRepo fundingSourceRepo;
                         savedProposal.getBusinessPurpose());
 
                 // This URL points to your new route: /proposal/:proposalId
-                String link = "https://ravi-ai.com/proposal/" + savedProposal.getProposalId();
+                // String link = "https://ravi-ai.com/proposal/" +
+                // savedProposal.getProposalId();
+                String link = "https://ravi-ai.com/proposal/"
+                        + savedProposal.getProposalId();
 
                 // Now call sendEmailWithLink
                 emailService.sendEmailWithLink(
@@ -285,13 +334,39 @@ private FundingSourceRepo fundingSourceRepo;
                         newStatus,
                         comments != null ? comments : "No comments provided");
 
-                String link = "https://ravi-ai.com/proposal/" + updatedProposal.getProposalId();
+                // String link = "https://ravi-ai.com/proposal/" +
+                // updatedProposal.getProposalId();
+                String link = "https://ravi-ai.com/proposal/"
+                        + updatedProposal.getProposalId();
 
                 emailService.sendEmailWithLink(
                         faculty.getEmail(),
                         facultySubject,
                         link,
                         facultyMessage);
+
+                // === BUDGET ALERT CHECK ===
+                if ("APPROVED".equalsIgnoreCase(newStatus)) {
+                    // 1) Get the current date/time
+                    LocalDateTime now = LocalDateTime.now();
+                    int currentYear = now.getYear();
+                    int currentMonth = now.getMonthValue();
+
+                    // 2) Fetch all proposals for this approver that are APPROVED
+                    List<Proposal> approvedProposals = proposalRepo
+                            .findByCurrentApprover_UserIdAndStatus(approverId, "APPROVED");
+
+                    // 3) Sum the costs of proposals approved in the same year/month
+                    double totalApprovedThisMonth = approvedProposals.stream()
+                            .filter(p -> p.getProposalDate().getYear() == currentYear
+                                    && p.getProposalDate().getMonthValue() == currentMonth)
+                            .mapToDouble(p -> p.getEstimatedCost() != null ? p.getEstimatedCost() : 0.0)
+                            .sum();
+
+                    // 4) Call ApproverBudgetService to see if we crossed 50% or 80%
+                    approverBudgetService.checkAndSendBudgetAlert(approverId, currentYear, currentMonth,
+                            totalApprovedThisMonth);
+                }
 
                 // Convert and return the updated proposal
                 return convertToDTO(updatedProposal);
@@ -303,19 +378,18 @@ private FundingSourceRepo fundingSourceRepo;
         }
     }
 
-
     public ProposalDTO addComment(Long proposalId, Long approverId, Long fundingSourceId, String comments) {
         try {
             Optional<Proposal> existingProposalOpt = proposalRepo.findById(proposalId);
             Optional<User> approverOpt = userRepo.findById(approverId);
-    
+
             if (!existingProposalOpt.isPresent() || !approverOpt.isPresent()) {
                 return null;
             }
-    
+
             Proposal proposal = existingProposalOpt.get();
-            User approver = approverOpt.get();
-    
+            // User approver = approverOpt.get();
+
             // Optional funding source logic
             FundingSource fundingSource = null;
             if (fundingSourceId != null) {
@@ -324,24 +398,22 @@ private FundingSourceRepo fundingSourceRepo;
                     fundingSource = fundingSourceOpt.get();
                 }
             }
-    
+
             // Add approval history entry
             approvalHistoryService.addHistoryEntry(
-                proposalId,
-                approverId,
-                fundingSource != null ? fundingSource.getSourceId() : null,
-                proposal.getStatus(),
-                proposal.getStatus(), // Status remains the same
-                comments
-            );
-    
+                    proposalId,
+                    approverId,
+                    fundingSource != null ? fundingSource.getSourceId() : null,
+                    proposal.getStatus(),
+                    proposal.getStatus(), // Status remains the same
+                    comments);
+
             return convertToDTO(proposal);
         } catch (Exception e) {
             logger.error("Error adding comment: ", e);
             return null;
         }
     }
-    
 
     public List<ProposalDTO> getProposalsByApproverAndStatus(Long approverId, String status) {
         try {
@@ -367,18 +439,17 @@ private FundingSourceRepo fundingSourceRepo;
         }
     }
 
-    
     public ProposalDTO convertToDTO(Proposal proposal) {
         ProposalDTO proposalDTO = new ProposalDTO();
-    
+
         proposalDTO.setProposalId(proposal.getProposalId());
         proposalDTO.setUserId(proposal.getUser().getUserId());
         proposalDTO.setItemName(proposal.getItemName());
         proposalDTO.setCategory(proposal.getCategory());
-    
+
         // Already in your snippet, ensures the "description" field is included:
         proposalDTO.setDescription(proposal.getDescription());
-    
+
         proposalDTO.setQuantity(proposal.getQuantity());
         proposalDTO.setEstimatedCost(proposal.getEstimatedCost());
         proposalDTO.setVendorInfo(proposal.getVendorInfo());
@@ -386,38 +457,36 @@ private FundingSourceRepo fundingSourceRepo;
         proposalDTO.setStatus(proposal.getStatus());
         proposalDTO.setProposalDate(proposal.getProposalDate());
         proposalDTO.setCurrentApproverId(
-                proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null
-        );
+                proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null);
         proposalDTO.setDepartmentId(proposal.getDepartment().getDeptId());
-    
+
         // ============== NEW LINES FOR REQUESTER/APPROVER NAMES ==============
-        // (Assuming user.getEmail() is the best field to display. 
-        //  If you have user.getFirstName() / getLastName(), feel free to adapt.)
-    
+        // (Assuming user.getEmail() is the best field to display.
+        // If you have user.getFirstName() / getLastName(), feel free to adapt.)
+
         // 1) Requester name (the person who created the proposal)
         proposalDTO.setRequesterName(proposal.getUser().getEmail());
-    
+
         // 2) Approver name (only if there's a currentApprover)
         if (proposal.getCurrentApprover() != null) {
             proposalDTO.setApproverName(proposal.getCurrentApprover().getEmail());
         } else {
-            proposalDTO.setApproverName(null); 
+            proposalDTO.setApproverName(null);
         }
         // =====================================================================
-    
-        // If the proposal is approved, also show order/delivery fields (as you already do):
+
+        // If the proposal is approved, also show order/delivery fields (as you already
+        // do):
         if ("APPROVED".equalsIgnoreCase(proposal.getStatus())) {
-            PurchaseOrder purchaseOrder =
-                purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
+            PurchaseOrder purchaseOrder = purchaseOrderRepo.findByProposal_ProposalId(proposal.getProposalId());
             if (purchaseOrder != null) {
                 proposalDTO.setOrderStatus(purchaseOrder.getOrderStatus());
                 proposalDTO.setDeliveryStatus(purchaseOrder.getDeliveryStatus());
             }
         }
-    
+
         return proposalDTO;
     }
-    
 
     public Proposal convertToEntity(ProposalDTO proposalDTO) {
         Proposal proposal = new Proposal();
