@@ -64,7 +64,8 @@ public class ApproverBudgetController {
         @RequestParam int month,
         @RequestParam boolean alertEnabled,
         @RequestParam boolean alertAt50,
-        @RequestParam boolean alertAt80
+        @RequestParam boolean alertAt80,
+        @RequestParam Double monthlyBudget
     ) {
         return approverBudgetService.approverSetAlertPreferences(
             approverId,
@@ -72,7 +73,8 @@ public class ApproverBudgetController {
             month,
             alertEnabled,
             alertAt50,
-            alertAt80
+            alertAt80,
+            monthlyBudget
         );
     }
     @GetMapping("/approver-preferences")

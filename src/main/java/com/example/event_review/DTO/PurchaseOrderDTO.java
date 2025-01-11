@@ -11,7 +11,11 @@ public class PurchaseOrderDTO {
     private Double estimatedCost;
     private String orderStatus;
     private String deliveryStatus; // Processing, Shipped, Delivered, etc.
-    private LocalDateTime orderDate;
+    private LocalDateTime createdTime;
+    private String createdBy;
+    private String updatedBy;
+    private LocalDateTime updatedTime;
+
     private LocalDateTime expectedDeliveryDate;
     private String purchaseOrderNumber;
     private String vendorConfirmation;
@@ -83,12 +87,38 @@ public class PurchaseOrderDTO {
         this.deliveryStatus = deliveryStatus;
     }
 
-    public LocalDateTime getOrderDate() {
-        return orderDate;
+    
+
+    public LocalDateTime getCreatedTime() {
+        return createdTime;
     }
 
-    public void setOrderDate(LocalDateTime orderDate) {
-        this.orderDate = orderDate;
+    public void setCreatedTime(LocalDateTime createdTime) {
+        this.createdTime = createdTime;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public LocalDateTime getUpdatedTime() {
+        return updatedTime;
+    }
+
+    public void setUpdatedTime(LocalDateTime updatedTime) {
+        this.updatedTime = updatedTime;
     }
 
     public LocalDateTime getExpectedDeliveryDate() {

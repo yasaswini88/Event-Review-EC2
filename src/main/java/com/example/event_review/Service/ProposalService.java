@@ -155,6 +155,9 @@ public class ProposalService {
             case 2: // Faculty => can only see proposals they created
                 return proposalDTO.getUserId().equals(currentUserId);
 
+            // case 2: // Faculty => can now comment on ANY proposal
+            // return true;
+
             case 3: // Approver => can only see proposals where they are the currentApprover
                 return proposalDTO.getCurrentApproverId() != null
                         && proposalDTO.getCurrentApproverId().equals(currentUserId);
@@ -378,36 +381,86 @@ public class ProposalService {
         }
     }
 
-    public ProposalDTO addComment(Long proposalId, Long approverId, Long fundingSourceId, String comments) {
-        try {
-            Optional<Proposal> existingProposalOpt = proposalRepo.findById(proposalId);
-            Optional<User> approverOpt = userRepo.findById(approverId);
+    // public ProposalDTO addComment(Long proposalId, Long approverId, Long
+    // fundingSourceId, String comments) {
+    // try {
+    // Optional<Proposal> existingProposalOpt = proposalRepo.findById(proposalId);
+    // Optional<User> approverOpt = userRepo.findById(approverId);
 
-            if (!existingProposalOpt.isPresent() || !approverOpt.isPresent()) {
+    // if (!existingProposalOpt.isPresent() || !approverOpt.isPresent()) {
+    // return null;
+    // }
+
+    // Proposal proposal = existingProposalOpt.get();
+    // // User approver = approverOpt.get();
+
+    // // Optional funding source logic
+    // FundingSource fundingSource = null;
+    // if (fundingSourceId != null) {
+    // Optional<FundingSource> fundingSourceOpt =
+    // fundingSourceRepo.findById(fundingSourceId);
+    // if (fundingSourceOpt.isPresent()) {
+    // fundingSource = fundingSourceOpt.get();
+    // }
+    // }
+
+    // // Add approval history entry
+    // approvalHistoryService.addHistoryEntry(
+    // proposalId,
+    // approverId,
+    // fundingSource != null ? fundingSource.getSourceId() : null,
+    // proposal.getStatus(),
+    // proposal.getStatus(), // Status remains the same
+    // comments);
+
+    // return convertToDTO(proposal);
+    // } catch (Exception e) {
+    // logger.error("Error adding comment: ", e);
+    // return null;
+    // }
+    // }
+
+    public ProposalDTO addComment(Long proposalId,
+            Long currentUserId,
+            Long fundingSourceId,
+            String comments) {
+        try {
+            // 1) Find the proposal
+            Optional<Proposal> proposalOpt = proposalRepo.findById(proposalId);
+            if (!proposalOpt.isPresent()) {
+                // Return null, or throw exception => your controller can respond 404
                 return null;
             }
+            Proposal proposal = proposalOpt.get();
 
-            Proposal proposal = existingProposalOpt.get();
-            // User approver = approverOpt.get();
+            // 2) Find the user (we still want to ensure the user exists, or at least is
+            // logged in)
+            Optional<User> userOpt = userRepo.findById(currentUserId);
+            if (!userOpt.isPresent()) {
+                // Return null => triggers 403 or 404 in the controller
+                return null;
+            }
+            User user = userOpt.get();
 
-            // Optional funding source logic
+            // 3) DO NOT check roles => let anyone comment
+            // (As long as they are a valid user. If you want zero check, skip this
+            // entirely.)
+
+            // 4) Actually add the comment
             FundingSource fundingSource = null;
             if (fundingSourceId != null) {
-                Optional<FundingSource> fundingSourceOpt = fundingSourceRepo.findById(fundingSourceId);
-                if (fundingSourceOpt.isPresent()) {
-                    fundingSource = fundingSourceOpt.get();
-                }
+                fundingSource = fundingSourceRepo.findById(fundingSourceId).orElse(null);
             }
 
-            // Add approval history entry
             approvalHistoryService.addHistoryEntry(
                     proposalId,
-                    approverId,
-                    fundingSource != null ? fundingSource.getSourceId() : null,
-                    proposal.getStatus(),
-                    proposal.getStatus(), // Status remains the same
+                    currentUserId,
+                    (fundingSource != null ? fundingSource.getSourceId() : null),
+                    proposal.getStatus(), // old status
+                    proposal.getStatus(), // new status => same
                     comments);
 
+            // Return the updated proposal
             return convertToDTO(proposal);
         } catch (Exception e) {
             logger.error("Error adding comment: ", e);

@@ -12,6 +12,7 @@ import com.example.event_review.Repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -34,41 +35,57 @@ public class ApprovalHistoryService {
     private FundingSourceRepo fundingSourceRepo;
 
     // public List<ApprovalHistoryDTO> getHistoryByProposalId(Long proposalId) {
-    //     return historyRepo.findByProposal_ProposalIdOrderByActionDateDesc(proposalId)
-    //             .stream()
-    //             .map(this::convertToDTO)
-    //             .collect(Collectors.toList());
+    // return historyRepo.findByProposal_ProposalIdOrderByActionDateDesc(proposalId)
+    // .stream()
+    // .map(this::convertToDTO)
+    // .collect(Collectors.toList());
     // }
     public List<ApprovalHistoryDTO> getHistoryByProposalId(Long proposalId) {
         logger.info("Fetching approval history for proposal ID: {}", proposalId);
-        List<ApprovalHistory> historyList = historyRepo.findByProposal_ProposalIdOrderByActionDateDesc(proposalId);
+    
+        List<ApprovalHistory> historyList =
+            historyRepo.findByProposal_ProposalIdOrderByActionDateDesc(proposalId);
+    
         if (historyList == null || historyList.isEmpty()) {
-            logger.error("No approval history found for proposal ID: {}", proposalId);
-            throw new IllegalArgumentException("No approval history found for proposal ID: " + proposalId);
+            logger.warn("No approval history found for proposal ID: {}", proposalId);
+            // Return an empty list. This will yield 200 OK with an empty [] in JSON.
+            return Collections.emptyList();
         }
+    
         return historyList.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
     
-   
 
-    public void addHistoryEntry(Long proposalId, Long approverId, Long fundingSourceId, String oldStatus, 
-                              String newStatus, String comments) {
+    public void addHistoryEntry(Long proposalId, Long approverId, Long fundingSourceId,
+            String oldStatus, String newStatus, String comments) {
         Proposal proposal = proposalRepo.findById(proposalId).orElse(null);
         User approver = userRepo.findById(approverId).orElse(null);
-        FundingSource fundingSource = fundingSourceRepo.findById(fundingSourceId).orElse(null);
 
-        if (proposal != null && approver != null && fundingSource != null) {
+        // Only look up fundingSource if the ID is actually non-null:
+        FundingSource fundingSource = null;
+        if (fundingSourceId != null) {
+            fundingSource = fundingSourceRepo.findById(fundingSourceId).orElse(null);
+        }
+
+        // If you actually want a history row *even if* no funding source was provided,
+        // then check only that proposal & approver exist:
+        if (proposal != null && approver != null) {
             ApprovalHistory history = new ApprovalHistory();
             history.setProposal(proposal);
             history.setApprover(approver);
-            history.setFundingSource(fundingSource);
+
+            // Only set the FundingSource if not null
+            if (fundingSource != null) {
+                history.setFundingSource(fundingSource);
+            }
+
             history.setOldStatus(oldStatus);
             history.setNewStatus(newStatus);
             history.setComments(comments);
             history.setActionDate(LocalDateTime.now());
-            
+
             historyRepo.save(history);
         }
     }
@@ -78,11 +95,19 @@ public class ApprovalHistoryService {
         dto.setId(history.getId());
         dto.setProposalId(history.getProposal().getProposalId());
         dto.setApproverId(history.getApprover().getUserId());
-        dto.setFundingSourceId(history.getFundingSource().getSourceId());
+        
+        // Safely handle a missing funding source:
+        if (history.getFundingSource() != null) {
+            dto.setFundingSourceId(history.getFundingSource().getSourceId());
+        } else {
+            dto.setFundingSourceId(null);
+        }
+    
         dto.setOldStatus(history.getOldStatus());
         dto.setNewStatus(history.getNewStatus());
         dto.setComments(history.getComments());
         dto.setActionDate(history.getActionDate());
         return dto;
     }
+    
 }

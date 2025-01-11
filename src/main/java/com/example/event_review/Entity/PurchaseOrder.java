@@ -3,6 +3,8 @@ package com.example.event_review.Entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "purchase_orders")
@@ -17,11 +19,19 @@ public class PurchaseOrder {
 
     private String orderStatus; // Pending, Ordered
     private String deliveryStatus; // Processing, Shipped, Delivered .
-    private LocalDateTime orderDate;
+    private LocalDateTime createdTime;
+    private String createdBy;
+private String updatedBy;
+private LocalDateTime updatedTime;
+
+    
     private LocalDateTime expectedDeliveryDate;
     private String purchaseOrderNumber;
     private String vendorConfirmation;
     private Double finalCost;
+
+    @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+private List<PurchaseOrderNote> notes = new ArrayList<>();
 
     // Added new getter and setter for orderStatus
     public String getOrderStatus() {
@@ -56,13 +66,41 @@ public class PurchaseOrder {
     public void setDeliveryStatus(String deliveryStatus) {
         this.deliveryStatus = deliveryStatus;
     }
+  
 
-    public LocalDateTime getOrderDate() {
-        return orderDate;
+    
+   
+
+    public LocalDateTime getCreatedTime() {
+        return createdTime;
     }
 
-    public void setOrderDate(LocalDateTime orderDate) {
-        this.orderDate = orderDate;
+    public void setCreatedTime(LocalDateTime createdTime) {
+        this.createdTime = createdTime;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public LocalDateTime getUpdatedTime() {
+        return updatedTime;
+    }
+
+    public void setUpdatedTime(LocalDateTime updatedTime) {
+        this.updatedTime = updatedTime;
     }
 
     public LocalDateTime getExpectedDeliveryDate() {
@@ -83,6 +121,14 @@ public class PurchaseOrder {
 
     public String getVendorConfirmation() {
         return vendorConfirmation;
+    }
+
+    public List<PurchaseOrderNote> getNotes() {
+        return notes;
+    }
+
+    public void setNotes(List<PurchaseOrderNote> notes) {
+        this.notes = notes;
     }
 
     public void setVendorConfirmation(String vendorConfirmation) {

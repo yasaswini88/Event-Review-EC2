@@ -1,13 +1,17 @@
 package com.example.event_review.Service;
 
 import com.example.event_review.DTO.PurchaseOrderDTO;
+import com.example.event_review.DTO.PurchaseOrderNoteDTO;
 import com.example.event_review.Entity.PurchaseOrder;
+import com.example.event_review.Entity.PurchaseOrderNote;
 import com.example.event_review.Entity.Proposal;
 import com.example.event_review.Repo.PurchaseOrderRepo;
 
 import jakarta.transaction.Transactional;
 
 import com.example.event_review.Repo.ProposalRepo;
+import com.example.event_review.Repo.PurchaseOrderNoteRepo;
+
 // import org.slf4j.Logger;
 // import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +37,9 @@ public class PurchaseOrderService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+private PurchaseOrderNoteRepo purchaseOrderNoteRepo;
+
     public List<PurchaseOrderDTO> getAllPurchaseOrders() {
         return purchaseOrderRepo.findAll().stream()
                 .map(this::convertToDTO)
@@ -45,19 +52,21 @@ public class PurchaseOrderService {
                 .collect(Collectors.toList());
     }
 
-    public PurchaseOrderDTO createPurchaseOrder(Long proposalId) {
+    public PurchaseOrderDTO createPurchaseOrder(Long proposalId,String createdBy, LocalDateTime createdTime) {
         Optional<Proposal> proposalOpt = proposalRepo.findById(proposalId);
 
         if (proposalOpt.isPresent() && "APPROVED".equals(proposalOpt.get().getStatus())) {
             Proposal proposal = proposalOpt.get();
             PurchaseOrder order = new PurchaseOrder();
             order.setProposal(proposal);
-            order.setOrderDate(LocalDateTime.now());
+            order.setCreatedBy(createdBy);
+        order.setCreatedTime(createdTime);
             order.setOrderStatus("ORDERED");
  // Initial status when created
             order.setDeliveryStatus("Not Started");
             order.setPurchaseOrderNumber(generatePONumber());
             order.setFinalCost(proposal.getEstimatedCost());
+            
 
             PurchaseOrder savedOrder = purchaseOrderRepo.save(order);
             System.out.println("Creating purchase order for proposal ID: " + proposalId);
@@ -91,7 +100,8 @@ public class PurchaseOrderService {
     }
 
     public PurchaseOrderDTO updateDeliveryStatus(Long orderId, String newStatus, LocalDateTime expectedDeliveryDate,
-    String purchaseOrderNumber) {
+    String purchaseOrderNumber,String updatedBy,
+    LocalDateTime updatedTime) {
         Optional<PurchaseOrder> orderOpt = purchaseOrderRepo.findById(orderId);
 
         if (orderOpt.isPresent()) {
@@ -103,6 +113,8 @@ public class PurchaseOrderService {
                 order.setPurchaseOrderNumber(purchaseOrderNumber);
             }
 
+            order.setUpdatedBy(updatedBy);
+        order.setUpdatedTime(updatedTime);
             // Send notification for delivery status update
             notifyFacultyAboutDeliveryStatus(order);
 
@@ -163,6 +175,33 @@ public class PurchaseOrderService {
         emailService.sendSimpleEmail(facultyEmail, subject, message);
     }
 
+    public List<PurchaseOrderNote> getNotesByOrderId(Long orderId) {
+    return purchaseOrderNoteRepo.findByPurchaseOrder_OrderId(orderId);
+}
+
+@Transactional
+public PurchaseOrderNote addNoteToOrder(
+    Long orderId, 
+    String noteText, 
+    String createdBy,
+    LocalDateTime createdDate
+) {
+    Optional<PurchaseOrder> orderOpt = purchaseOrderRepo.findById(orderId);
+    if (!orderOpt.isPresent()) {
+        throw new RuntimeException("Order not found for ID: " + orderId);
+    }
+
+    PurchaseOrder order = orderOpt.get();
+
+    PurchaseOrderNote note = new PurchaseOrderNote();
+    note.setPurchaseOrder(order);
+    note.setNoteText(noteText);
+    note.setCreatedBy(createdBy);
+    note.setCreatedDate(createdDate); 
+
+    return purchaseOrderNoteRepo.save(note);
+}
+
     private String generatePONumber() {
         return "PO-" + System.currentTimeMillis();
     }
@@ -177,11 +216,42 @@ public class PurchaseOrderService {
         dto.setEstimatedCost(order.getProposal().getEstimatedCost());
         dto.setOrderStatus(order.getOrderStatus());
         dto.setDeliveryStatus(order.getDeliveryStatus());
-        dto.setOrderDate(order.getOrderDate());
+        dto.setCreatedTime(order.getCreatedTime());
         dto.setExpectedDeliveryDate(order.getExpectedDeliveryDate());
         dto.setPurchaseOrderNumber(order.getPurchaseOrderNumber());
         dto.setVendorConfirmation(order.getVendorConfirmation());
         dto.setFinalCost(order.getFinalCost());
+        dto.setCreatedBy(order.getCreatedBy());
+    dto.setUpdatedBy(order.getUpdatedBy());
+    dto.setUpdatedTime(order.getUpdatedTime());
         return dto;
     }
+
+    public PurchaseOrderNoteDTO convertNoteToDTO(PurchaseOrderNote note) {
+    PurchaseOrderNoteDTO dto = new PurchaseOrderNoteDTO();
+    dto.setNoteId(note.getNoteId());
+    dto.setOrderId(note.getPurchaseOrder().getOrderId()); // if you want that
+    dto.setNoteText(note.getNoteText());
+    dto.setCreatedDate(note.getCreatedDate());
+    dto.setCreatedBy(note.getCreatedBy());
+    return dto;
+}
+
+public List<PurchaseOrderNoteDTO> getNotesByOrderIdDTO(Long orderId) {
+    return purchaseOrderNoteRepo.findByPurchaseOrder_OrderId(orderId)
+        .stream()
+        .map(this::convertNoteToDTO)
+        .collect(Collectors.toList());
+}
+
+public PurchaseOrderNoteDTO addNoteToOrderDTO(
+    Long orderId, 
+    String noteText, 
+    String createdBy,
+    LocalDateTime createdDate
+) {
+    PurchaseOrderNote entity = addNoteToOrder(orderId, noteText, createdBy, createdDate);
+    return convertNoteToDTO(entity);
+}
+
 }

@@ -29,6 +29,7 @@ com/example/event_review/Entity/ApproverBudget.class
 com/example/event_review/Controller/UserController.class
 com/example/event_review/Entity/User.class
 com/example/event_review/Entity/Event.class
+com/example/event_review/Repo/PurchaseOrderNoteRepo.class
 com/example/event_review/DTO/PurchaseOrderDTO.class
 com/example/event_review/DTO/RolesDTO.class
 com/example/event_review/Entity/ApprovalHistory.class
@@ -42,10 +43,12 @@ com/example/event_review/Controller/RolesController.class
 com/example/event_review/Entity/PurchaseOrder.class
 com/example/event_review/Repo/ApprovalHistoryRepo.class
 com/example/event_review/DTO/DepartmentDTO.class
+com/example/event_review/DTO/PurchaseOrderNoteDTO.class
 com/example/event_review/Controller/ApprovalHistoryController.class
 com/example/event_review/Entity/Proposal.class
 com/example/event_review/Entity/Department.class
 com/example/event_review/Repo/ProposalRepo.class
+com/example/event_review/Entity/PurchaseOrderNote.class
 com/example/event_review/Controller/EventController.class
 com/example/event_review/DTO/UserDTO.class
 com/example/event_review/DTO/CodeVerificationRequest.class

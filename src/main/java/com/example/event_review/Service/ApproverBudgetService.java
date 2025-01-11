@@ -76,29 +76,40 @@ public class ApproverBudgetService {
      * @param alertAt80       Whether the Approver wants an 80% alert.
      * @return                The updated or newly created ApproverBudget record.
      */
-    public ApproverBudget approverSetAlertPreferences(Long approverId, int year, int month, boolean alertEnabled, boolean alertAt50, boolean alertAt80) {
-        // 1) Confirm that 'approverId' is indeed an Approver
-        User approver = userRepo.findById(approverId)
-                .orElseThrow(() -> new RuntimeException("Approver not found: " + approverId));
-        if (!isApprover(approver)) {
-            throw new SecurityException("Only Approvers can set their alert preferences!");
-        }
-
-        // 2) Find or create the ApproverBudget record
-        Optional<ApproverBudget> optBudget = approverBudgetRepo.findByApproverAndYearAndMonth(approver, year, month);
-        ApproverBudget ab = optBudget.orElse(new ApproverBudget());
-        ab.setApprover(approver);
-        ab.setYear(year);
-        ab.setMonth(month);
-
-        // 3) Approver sets only the alert fields
-        ab.setAlertEnabled(alertEnabled);
-        ab.setAlertAt50(alertAt50);
-        ab.setAlertAt80(alertAt80);
-
-        // 4) Save and return
-        return approverBudgetRepo.save(ab);
+    public ApproverBudget approverSetAlertPreferences(
+    Long approverId,
+    int year,
+    int month,
+    boolean alertEnabled,
+    boolean alertAt50,
+    boolean alertAt80,
+    Double monthlyBudget
+) {
+    // 1) Confirm user is Approver
+    User approver = userRepo.findById(approverId)
+        .orElseThrow(() -> new RuntimeException("Approver not found: " + approverId));
+    if (!isApprover(approver)) {
+        throw new SecurityException("Only Approvers can set their alert preferences!");
     }
+
+    // 2) Find or create ApproverBudget
+    Optional<ApproverBudget> optBudget =
+        approverBudgetRepo.findByApproverAndYearAndMonth(approver, year, month);
+    ApproverBudget ab = optBudget.orElse(new ApproverBudget());
+    ab.setApprover(approver);
+    ab.setYear(year);
+    ab.setMonth(month);
+
+    // 3) Set budget + alerts
+    ab.setMonthlyBudget(monthlyBudget);
+    ab.setAlertEnabled(alertEnabled);
+    ab.setAlertAt50(alertAt50);
+    ab.setAlertAt80(alertAt80);
+
+    // 4) Save
+    return approverBudgetRepo.save(ab);
+}
+
 
     /**
      * This method checks if the Approver's total approved spend 

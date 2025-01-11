@@ -181,17 +181,44 @@ public List<ProposalDTO> getProposalsByApproverIdAndStatus(
     return proposalService.getProposalsByApproverAndStatus(approverId, status);
 }
 
+// @PutMapping("/{id}/comment")
+// public ResponseEntity<ProposalDTO> addComment(
+//    @PathVariable Long id,
+//    @RequestParam Long currentUserId,             // rename param
+//    @RequestParam(required = false) Long fundingSourceId,
+//    @RequestParam(required = false) String comments
+// ) {
+//     // Call the updated service method
+//     ProposalDTO updatedProposal = proposalService.addComment(id, currentUserId, fundingSourceId, comments);
+
+//     if (updatedProposal == null) {
+//         // If null => user is not authorized or proposal not found
+//         return ResponseEntity.status(403).build(); // 403 Forbidden
+//     }
+
+//     return ResponseEntity.ok(updatedProposal);
+// }
 @PutMapping("/{id}/comment")
 public ResponseEntity<ProposalDTO> addComment(
     @PathVariable Long id,
-    @RequestParam Long approverId,
+    @RequestParam Long currentUserId,
     @RequestParam(required = false) Long fundingSourceId,
     @RequestParam(required = false) String comments
 ) {
-    ProposalDTO updatedProposal = proposalService.addComment(id, approverId, fundingSourceId, comments);
-    return updatedProposal != null ?
-            ResponseEntity.ok(updatedProposal) :
-            ResponseEntity.notFound().build();
+    // 1) Call the service
+    ProposalDTO updatedProposal = proposalService.addComment(
+        id, currentUserId, fundingSourceId, comments
+    );
+
+    // 2) Decide how to handle null:
+    if (updatedProposal == null) {
+        // If you want 404 if proposal doesn't exist => you can detect that specifically
+        // Otherwise, 403 is your fallback for "not found or not allowed".
+        return ResponseEntity.status(404).build();
+    }
+
+    // 3) Otherwise, return the updated proposal
+    return ResponseEntity.ok(updatedProposal);
 }
 
 
