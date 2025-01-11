@@ -59,7 +59,8 @@ public class ApprovalHistoryService {
     
 
     public void addHistoryEntry(Long proposalId, Long approverId, Long fundingSourceId,
-            String oldStatus, String newStatus, String comments) {
+            String oldStatus, String newStatus, String comments,
+            LocalDateTime customActionDate) {
         Proposal proposal = proposalRepo.findById(proposalId).orElse(null);
         User approver = userRepo.findById(approverId).orElse(null);
 
@@ -84,7 +85,8 @@ public class ApprovalHistoryService {
             history.setOldStatus(oldStatus);
             history.setNewStatus(newStatus);
             history.setComments(comments);
-            history.setActionDate(LocalDateTime.now());
+            history.setActionDate(customActionDate);
+            
 
             historyRepo.save(history);
         }
@@ -107,6 +109,10 @@ public class ApprovalHistoryService {
         dto.setNewStatus(history.getNewStatus());
         dto.setComments(history.getComments());
         dto.setActionDate(history.getActionDate());
+
+        User approver = history.getApprover();
+    String fullName = approver.getFirstName() + " " + approver.getLastName();
+    dto.setApproverName(fullName);
         return dto;
     }
     

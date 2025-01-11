@@ -12,6 +12,8 @@ public class ApprovalHistoryDTO {
     private LocalDateTime actionDate;
     private Long fundingSourceId;
 
+    private String approverName;
+
     public Long getFundingSourceId() {
         return fundingSourceId;
     }   
@@ -75,5 +77,13 @@ public class ApprovalHistoryDTO {
 
     public void setActionDate(LocalDateTime actionDate) {
         this.actionDate = actionDate;
+    }
+
+    public String getApproverName() {
+        return approverName;
+    }
+
+    public void setApproverName(String approverName) {
+        this.approverName = approverName;
     }
 }

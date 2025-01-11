@@ -203,11 +203,12 @@ public ResponseEntity<ProposalDTO> addComment(
     @PathVariable Long id,
     @RequestParam Long currentUserId,
     @RequestParam(required = false) Long fundingSourceId,
-    @RequestParam(required = false) String comments
+    @RequestParam(required = false) String comments,
+    @RequestParam(required = false) String actionDate
 ) {
     // 1) Call the service
     ProposalDTO updatedProposal = proposalService.addComment(
-        id, currentUserId, fundingSourceId, comments
+        id, currentUserId, fundingSourceId, comments,actionDate
     );
 
     // 2) Decide how to handle null:

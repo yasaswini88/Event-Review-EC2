@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -321,7 +322,7 @@ public class ProposalService {
                 Proposal updatedProposal = proposalRepo.save(proposal);
 
                 // Add the history entry
-                approvalHistoryService.addHistoryEntry(id, approverId, fundingSourceId, oldStatus, newStatus, comments);
+                approvalHistoryService.addHistoryEntry(id, approverId, fundingSourceId, oldStatus, newStatus, comments,LocalDateTime.now() );
                 // Send email to the faculty member who created the proposal
                 // Send email to the faculty member who created the proposal
                 User faculty = updatedProposal.getUser();
@@ -423,7 +424,8 @@ public class ProposalService {
     public ProposalDTO addComment(Long proposalId,
             Long currentUserId,
             Long fundingSourceId,
-            String comments) {
+            String comments,
+            String actionDateString) {
         try {
             // 1) Find the proposal
             Optional<Proposal> proposalOpt = proposalRepo.findById(proposalId);
@@ -452,13 +454,21 @@ public class ProposalService {
                 fundingSource = fundingSourceRepo.findById(fundingSourceId).orElse(null);
             }
 
+            LocalDateTime finalActionDate = LocalDateTime.now();
+        if (actionDateString != null && !actionDateString.isEmpty()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+            finalActionDate = LocalDateTime.parse(actionDateString, formatter);
+        }
+
+
             approvalHistoryService.addHistoryEntry(
                     proposalId,
                     currentUserId,
                     (fundingSource != null ? fundingSource.getSourceId() : null),
                     proposal.getStatus(), // old status
                     proposal.getStatus(), // new status => same
-                    comments);
+                    comments,
+                    finalActionDate);
 
             // Return the updated proposal
             return convertToDTO(proposal);
