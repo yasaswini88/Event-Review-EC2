@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface ProposalRepo extends JpaRepository<Proposal, Long> {
     List<Proposal> findByUser_UserId(Long userId); // This method is used to find all proposals created by a specific user.
+    List<Proposal> findByUser_UserIdOrderByProposalDateDesc(Long userId);
     List<Proposal> findByCurrentApprover_UserId(Long approverId); //Fetch proposals assigned to a specific approver.
 
     List<Proposal> findByStatus(String status); // This method is used to find all proposals that have a specific status, such as "pending", "approved", or "rejected".

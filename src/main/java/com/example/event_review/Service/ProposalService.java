@@ -1,6 +1,10 @@
 package com.example.event_review.Service;
 
+import com.example.event_review.DTO.FacultyStatsDTO;
+import com.example.event_review.DTO.HistoryLogsResponse;
+import com.example.event_review.DTO.MonthlyStatsDTO;
 import com.example.event_review.DTO.ProposalDTO;
+import com.example.event_review.DTO.YearlyStatsDTO;
 import com.example.event_review.Entity.Department;
 import com.example.event_review.Entity.FundingSource;
 import com.example.event_review.Entity.Proposal;
@@ -18,10 +22,16 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class ProposalService {
@@ -89,48 +99,6 @@ public class ProposalService {
         }
     }
 
-    // public boolean isUserAuthorizedToViewProposal(ProposalDTO proposalDTO, Long
-    // currentUserId) {
-    // if (currentUserId == null) {
-    // return false; // no user => not authorized
-    // }
-
-    // // Look up the requesting user from DB:
-    // Optional<User> userOpt = userRepo.findById(currentUserId);
-    // if (!userOpt.isPresent()) {
-    // return false;
-    // }
-    // User user = userOpt.get();
-    // if (user.getRoles() == null) {
-    // return false;
-    // }
-
-    // Long roleId = user.getRoles().getRoleId();
-    // switch (roleId.intValue()) {
-    // case 1: // Admin
-    // case 4: // Purchaser
-    // // Admin or Purchaser => always allowed
-    // return true;
-
-    // case 2: // Faculty
-    // // Allowed only if they are the creator
-    // return proposalDTO.getUserId().equals(currentUserId);
-
-    // case 3: // Approver
-    // // Allowed only if they are the currentApprover
-    // // (proposalDTO.getCurrentApproverId() might be null if no approver assigned
-    // yet)
-    // if (proposalDTO.getCurrentApproverId() != null
-    // && proposalDTO.getCurrentApproverId().equals(currentUserId)) {
-    // return true;
-    // }
-    // return false;
-
-    // default:
-    // // Any unknown role => not authorized
-    // return false;
-    // }
-    // }
     public boolean isUserAuthorizedToViewProposal(ProposalDTO proposalDTO, Long currentUserId) {
         if (currentUserId == null) {
             return false; // no user => not authorized
@@ -150,8 +118,12 @@ public class ProposalService {
 
         switch (roleId.intValue()) {
             case 1: // Admin => can see all
-            case 4: // Purchaser => can see all
+                // case 4: // Purchaser => can see all
                 return true;
+                
+
+            case 4: // Purchaser => can only see if proposal is approved
+                return "APPROVED".equalsIgnoreCase(proposalDTO.getStatus());
 
             case 2: // Faculty => can only see proposals they created
                 return proposalDTO.getUserId().equals(currentUserId);
@@ -181,6 +153,22 @@ public class ProposalService {
             return null;
         }
     }
+
+    public List<ProposalDTO> getProposalsByFacultyIdAndStatus(Long facultyId, String status) {
+        try {
+            // Fetch from DB
+            List<Proposal> proposals = proposalRepo.findByUser_UserIdAndStatus(facultyId, status);
+            
+            // Convert to DTO
+            return proposals.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            logger.error("Error getting proposals for faculty {} with status {}: ", facultyId, status, e);
+            return Collections.emptyList();
+        }
+    }
+    
 
     public List<ProposalDTO> getProposalsByStatus(String status) {
         try {
@@ -229,12 +217,12 @@ public class ProposalService {
                 User approver = savedProposal.getCurrentApprover();
                 String subject = "New Proposal Submitted for Review";
                 String message = String.format(
-                        "A new proposal has been submitted for your review.\n\n" +
-                                "Proposal Details:\n" +
-                                "Item: %s\n" +
-                                "Category: %s\n" +
-                                "Description: %s\n" +
-                                "Estimated Cost: $%.2f\n" +
+                        "A new proposal has been submitted for your review.<br><br>" +
+                                "Proposal Details:<br>" +
+                                "Item: %s<br>" +
+                                "Category: %s<br>" +
+                                "Description: %s<br>" +
+                                "Estimated Cost: $%.2f<br>" +
                                 "Business Purpose: %s",
                         savedProposal.getItemName(),
                         savedProposal.getCategory(),
@@ -322,17 +310,18 @@ public class ProposalService {
                 Proposal updatedProposal = proposalRepo.save(proposal);
 
                 // Add the history entry
-                approvalHistoryService.addHistoryEntry(id, approverId, fundingSourceId, oldStatus, newStatus, comments,LocalDateTime.now() );
+                approvalHistoryService.addHistoryEntry(id, approverId, fundingSourceId, oldStatus, newStatus, comments,
+                        LocalDateTime.now());
                 // Send email to the faculty member who created the proposal
                 // Send email to the faculty member who created the proposal
                 User faculty = updatedProposal.getUser();
                 String facultySubject = "Your Proposal Status Has Been Updated";
                 String facultyMessage = String.format(
-                        "Your proposal has been %s.\n\n" +
-                                "Proposal Details:\n" +
-                                "Item: %s\n" +
-                                "Status: %s\n" +
-                                "Comments: %s\n",
+                        "Your proposal has been %s.<br><br>" +
+                                "Proposal Details:<br>" +
+                                "Item: %s<br>" +
+                                "Status: %s<br>" +
+                                "Comments: %s<br>",
                         newStatus.toLowerCase(),
                         updatedProposal.getItemName(),
                         newStatus,
@@ -355,6 +344,36 @@ public class ProposalService {
                     LocalDateTime now = LocalDateTime.now();
                     int currentYear = now.getYear();
                     int currentMonth = now.getMonthValue();
+
+                    String purchaserSubject = "Proposal Approved – Please Proceed with Ordering";
+                    String purchaserMessage = String.format(
+                            "Hello Purchaser,<br><br>" +
+                                    "A newly approved proposal is awaiting your purchasing steps.<br><br>" +
+                                    "Proposal ID: %d<br>" +
+                                    "Item: %s<br>" +
+                                    "Estimated Cost: $%.2f<br><br>" +
+                                    "Please log in to place the order.<br><br>" +
+                                    "Thank you!",
+                            updatedProposal.getProposalId(),
+                            updatedProposal.getItemName(),
+                            updatedProposal.getEstimatedCost() != null ? updatedProposal.getEstimatedCost() : 0.0);
+
+                    // 2) Typically fetch Purchasers (roleId=4)
+                    List<User> purchasers = userRepo.findAll().stream()
+                            .filter(u -> u.getRoles() != null && u.getRoles().getRoleId() == 4)
+                            .collect(Collectors.toList());
+
+                    // 3) Construct the link
+                    String purchaserLink = "https://ravi-ai.com/proposal/" + updatedProposal.getProposalId();
+
+                    // 4) Send the email to each purchaser
+                    for (User purchaser : purchasers) {
+                        emailService.sendEmailWithLink(
+                                purchaser.getEmail(),
+                                purchaserSubject,
+                                purchaserLink,
+                                purchaserMessage);
+                    }
 
                     // 2) Fetch all proposals for this approver that are APPROVED
                     List<Proposal> approvedProposals = proposalRepo
@@ -382,38 +401,94 @@ public class ProposalService {
         }
     }
 
-    // public ProposalDTO addComment(Long proposalId, Long approverId, Long
-    // fundingSourceId, String comments) {
+    // public ProposalDTO addComment(Long proposalId,
+    // Long currentUserId,
+    // Long fundingSourceId,
+    // String comments,
+    // String actionDateString) {
     // try {
-    // Optional<Proposal> existingProposalOpt = proposalRepo.findById(proposalId);
-    // Optional<User> approverOpt = userRepo.findById(approverId);
-
-    // if (!existingProposalOpt.isPresent() || !approverOpt.isPresent()) {
+    // // 1) Find the proposal
+    // Optional<Proposal> proposalOpt = proposalRepo.findById(proposalId);
+    // if (!proposalOpt.isPresent()) {
+    // // Return null, or throw exception => your controller can respond 404
     // return null;
     // }
+    // Proposal proposal = proposalOpt.get();
 
-    // Proposal proposal = existingProposalOpt.get();
-    // // User approver = approverOpt.get();
+    // // 2) Find the user (we still want to ensure the user exists, or at least is
+    // // logged in)
+    // Optional<User> userOpt = userRepo.findById(currentUserId);
+    // if (!userOpt.isPresent()) {
+    // // Return null => triggers 403 or 404 in the controller
+    // return null;
+    // }
+    // // User user = userOpt.get();
 
-    // // Optional funding source logic
+    // User commentAuthor = userOpt.get();
+
+    // // 4) Actually add the comment
     // FundingSource fundingSource = null;
     // if (fundingSourceId != null) {
-    // Optional<FundingSource> fundingSourceOpt =
-    // fundingSourceRepo.findById(fundingSourceId);
-    // if (fundingSourceOpt.isPresent()) {
-    // fundingSource = fundingSourceOpt.get();
-    // }
+    // fundingSource = fundingSourceRepo.findById(fundingSourceId).orElse(null);
     // }
 
-    // // Add approval history entry
+    // LocalDateTime finalActionDate = LocalDateTime.now();
+    // if (actionDateString != null && !actionDateString.isEmpty()) {
+    // DateTimeFormatter formatter =
+    // DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+    // finalActionDate = LocalDateTime.parse(actionDateString, formatter);
+    // }
+
     // approvalHistoryService.addHistoryEntry(
     // proposalId,
-    // approverId,
-    // fundingSource != null ? fundingSource.getSourceId() : null,
-    // proposal.getStatus(),
-    // proposal.getStatus(), // Status remains the same
-    // comments);
+    // currentUserId,
+    // (fundingSource != null ? fundingSource.getSourceId() : null),
+    // proposal.getStatus(), // old status
+    // proposal.getStatus(), // new status => same
+    // comments,
+    // finalActionDate);
 
+    // try {
+    // // Build your recipients
+    // List<User> recipients = new ArrayList<>();
+    // // The requestor/faculty who created the proposal
+    // if (proposal.getUser() != null) {
+    // recipients.add(proposal.getUser());
+    // }
+    // // The current approver
+    // if (proposal.getCurrentApprover() != null
+    // && !Objects.equals(proposal.getCurrentApprover().getUserId(),
+    // proposal.getUser().getUserId())) {
+    // recipients.add(proposal.getCurrentApprover());
+    // }
+    // String subject = "New Comment on Proposal #" + proposalId;
+    // String commentAuthorName = commentAuthor.getFirstName() + " " +
+    // commentAuthor.getLastName();
+    // String message = String.format(
+    // "Hello,<br>" +
+    // "A new comment was posted by <b>%s</b>.<br>" +
+    // "Comment Text: <i>%s</i><br><br>" +
+    // "Please log in to view or reply.<br>",
+    // commentAuthorName,
+    // comments
+    // );
+
+    // String link = "https://ravi-ai.com/proposal/" + proposalId;
+
+    // // Send to each recipient
+    // for (User recipient : recipients) {
+    // emailService.sendEmailWithLink(
+    // recipient.getEmail(),
+    // subject,
+    // link,
+    // message
+    // );
+    // }
+    // } catch (Exception mailEx) {
+    // logger.error("Error sending comment notification emails", mailEx);
+    // }
+
+    // // Return the updated proposal
     // return convertToDTO(proposal);
     // } catch (Exception e) {
     // logger.error("Error adding comment: ", e);
@@ -430,48 +505,98 @@ public class ProposalService {
             // 1) Find the proposal
             Optional<Proposal> proposalOpt = proposalRepo.findById(proposalId);
             if (!proposalOpt.isPresent()) {
-                // Return null, or throw exception => your controller can respond 404
-                return null;
+                return null; // or throw NotFound exception
             }
             Proposal proposal = proposalOpt.get();
 
-            // 2) Find the user (we still want to ensure the user exists, or at least is
-            // logged in)
+            // 2) Find the user who is adding the comment
             Optional<User> userOpt = userRepo.findById(currentUserId);
             if (!userOpt.isPresent()) {
-                // Return null => triggers 403 or 404 in the controller
-                return null;
+                return null; // or throw 403
             }
-            User user = userOpt.get();
+            User commentAuthor = userOpt.get();
 
-            // 3) DO NOT check roles => let anyone comment
-            // (As long as they are a valid user. If you want zero check, skip this
-            // entirely.)
-
-            // 4) Actually add the comment
+            // 3) Prepare the FundingSource if provided
             FundingSource fundingSource = null;
             if (fundingSourceId != null) {
                 fundingSource = fundingSourceRepo.findById(fundingSourceId).orElse(null);
             }
 
+            // 4) Determine the finalActionDate
             LocalDateTime finalActionDate = LocalDateTime.now();
-        if (actionDateString != null && !actionDateString.isEmpty()) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
-            finalActionDate = LocalDateTime.parse(actionDateString, formatter);
-        }
+            if (actionDateString != null && !actionDateString.isEmpty()) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+                finalActionDate = LocalDateTime.parse(actionDateString, formatter);
+            }
 
-
+            // 5) Add the comment to approval history
             approvalHistoryService.addHistoryEntry(
                     proposalId,
                     currentUserId,
                     (fundingSource != null ? fundingSource.getSourceId() : null),
                     proposal.getStatus(), // old status
-                    proposal.getStatus(), // new status => same
+                    proposal.getStatus(), // new status => same for a comment
                     comments,
                     finalActionDate);
 
+            // ---------------------------
+            // NEW or CHANGED: build recipients
+            // ---------------------------
+            try {
+                // Convert the existing 'proposal' entity to a ProposalDTO
+                // so we can reuse isUserAuthorizedToViewProposal
+                ProposalDTO tempDto = convertToDTO(proposal);
+
+                // Grab all possible users from the DB
+                List<User> allUsers = userRepo.findAll();
+
+                // We'll build the list of recipients
+                List<User> recipients = new ArrayList<>();
+
+                for (User potentialViewer : allUsers) {
+                    // 1) Check if the user is authorized to view
+                    if (potentialViewer.getRoles() != null 
+        && potentialViewer.getRoles().getRoleId() == 1) {
+        continue; // no notifications to admin
+    }
+    
+                    boolean canView = isUserAuthorizedToViewProposal(tempDto, potentialViewer.getUserId());
+
+                    // 2) Exclude the comment author
+                    if (canView && !Objects.equals(potentialViewer.getUserId(), commentAuthor.getUserId())) {
+                        recipients.add(potentialViewer);
+                    }
+                }
+
+                // Build the email subject/message
+                String subject = "New Comment on Proposal #" + proposalId;
+                String commentAuthorName = commentAuthor.getFirstName() + " " + commentAuthor.getLastName();
+                String message = String.format(
+                        "Hello,<br>" +
+                                "A new comment was posted by <b>%s</b>.<br>" +
+                                "Comment Text: <i>%s</i><br><br>" +
+                                "Please log in to view or reply.<br>",
+                        commentAuthorName,
+                        comments);
+
+                // Example link to the proposal detail page
+                String link = "https://ravi-ai.com/proposal/" + proposalId;
+
+                // 3) Send the email to each recipient
+                for (User recipient : recipients) {
+                    emailService.sendEmailWithLink(
+                            recipient.getEmail(),
+                            subject,
+                            link,
+                            message);
+                }
+            } catch (Exception mailEx) {
+                logger.error("Error sending comment notification emails", mailEx);
+            }
+
             // Return the updated proposal
             return convertToDTO(proposal);
+
         } catch (Exception e) {
             logger.error("Error adding comment: ", e);
             return null;
@@ -549,6 +674,205 @@ public class ProposalService {
         }
 
         return proposalDTO;
+    }
+
+    public FacultyStatsDTO getFacultyStatsForUser(Long facultyUserId,
+            LocalDateTime fromDate,
+            LocalDateTime toDate) {
+        // 1) Find all proposals by this user (facultyUserId)
+        List<Proposal> allProposals = proposalRepo.findByUser_UserId(facultyUserId);
+
+        // 2) Filter to the given timeframe (e.g., fromDate .. toDate)
+        // If you only want the last 1 year, you can do:
+        List<Proposal> filteredByDate = allProposals.stream()
+                .filter(p -> p.getProposalDate() != null
+                        && (p.getProposalDate().isAfter(fromDate) || p.getProposalDate().isEqual(fromDate))
+                        && (p.getProposalDate().isBefore(toDate) || p.getProposalDate().isEqual(toDate)))
+                .collect(Collectors.toList());
+
+        // 3) Count how many submitted
+        int totalSubmitted = filteredByDate.size();
+
+        // 4) Among them, find which are "APPROVED", and sum their cost
+        List<Proposal> approved = filteredByDate.stream()
+                .filter(p -> "APPROVED".equalsIgnoreCase(p.getStatus()))
+                .collect(Collectors.toList());
+
+        int totalApproved = approved.size();
+        double sumApprovedAmount = approved.stream()
+                .mapToDouble(p -> p.getEstimatedCost() != null ? p.getEstimatedCost() : 0.0)
+                .sum();
+
+        // 5) Construct and return the DTO
+        FacultyStatsDTO dto = new FacultyStatsDTO();
+        dto.setFacultyId(facultyUserId);
+
+        // If you want the faculty name, you can do:
+        Optional<User> facultyOpt = userRepo.findById(facultyUserId);
+        if (facultyOpt.isPresent()) {
+            User facultyUser = facultyOpt.get();
+            String fullName = facultyUser.getFirstName() + " " + facultyUser.getLastName();
+            dto.setFacultyName(fullName);
+        }
+
+        dto.setTotalSubmittedCount(totalSubmitted);
+        dto.setTotalApprovedCount(totalApproved);
+        dto.setTotalApprovedAmount(sumApprovedAmount);
+
+        return dto;
+    }
+
+    public HistoryLogsResponse getHistoryLogs() {
+        // 1) Get all proposals or a relevant subset:
+        List<Proposal> allProposals = proposalRepo.findAll();
+
+        // 2) Create a data structure to hold stats:
+        // a Map< Integer (year), YearlyStatsDTO > for each year
+        Map<Integer, YearlyStatsDTO> yearMap = new HashMap<>();
+
+        // 3) Loop over every proposal, group by year, accumulate totals
+        for (Proposal p : allProposals) {
+            if (p.getProposalDate() == null) {
+                // If it doesn't have a date, skip or handle
+                continue;
+            }
+            int year = p.getProposalDate().getYear();
+
+            // If we don't have an entry yet for this year, create it
+            if (!yearMap.containsKey(year)) {
+                YearlyStatsDTO ystats = new YearlyStatsDTO();
+                // a map for month breakdown: "Jan", "Feb", ...
+                Map<String, MonthlyStatsDTO> monthlyMap = new HashMap<>();
+                ystats.setMonthlyBreakdown(monthlyMap);
+
+                yearMap.put(year, ystats);
+            }
+
+            // 4) Grab the YearlyStatsDTO
+            YearlyStatsDTO ydto = yearMap.get(year);
+
+            // Bump totalProposals
+            ydto.setTotalProposals(ydto.getTotalProposals() + 1);
+
+            // If it's approved, increment approvedProposals and budgetApproved
+            if ("APPROVED".equalsIgnoreCase(p.getStatus())) {
+                ydto.setApprovedProposals(ydto.getApprovedProposals() + 1);
+                double cost = (p.getEstimatedCost() != null) ? p.getEstimatedCost() : 0.0;
+                ydto.setBudgetApproved(ydto.getBudgetApproved() + cost);
+            }
+
+            // 5) Determine the short month name, e.g. "Jan", "Feb", ...
+            // Or store them as numeric, up to you.
+            String monthName = p.getProposalDate().getMonth().name().substring(0, 3);
+            // e.g. "JAN", "FEB"... If you want capitalization or just first 3 letters
+
+            // Then get or create a MonthlyStatsDTO for that month
+            MonthlyStatsDTO mstats = ydto.getMonthlyBreakdown().get(monthName);
+            if (mstats == null) {
+                mstats = new MonthlyStatsDTO();
+                ydto.getMonthlyBreakdown().put(monthName, mstats);
+            }
+            // Bump the month’s totals
+            mstats.setTotal(mstats.getTotal() + 1);
+
+            if ("APPROVED".equalsIgnoreCase(p.getStatus())) {
+                mstats.setApproved(mstats.getApproved() + 1);
+                double cost = (p.getEstimatedCost() != null) ? p.getEstimatedCost() : 0.0;
+                mstats.setBudgetApproved(mstats.getBudgetApproved() + cost);
+            }
+        }
+
+        // 6) Convert that Map<Integer, YearlyStatsDTO> into
+        // the final List<Map<String, YearlyStatsDTO>> shape
+        List<Map<String, YearlyStatsDTO>> finalList = new ArrayList<>();
+
+        for (Map.Entry<Integer, YearlyStatsDTO> entry : yearMap.entrySet()) {
+            Integer year = entry.getKey();
+            YearlyStatsDTO stats = entry.getValue();
+
+            // We want an object like { "2024": { totalProposals..., monthlyBreakdown... } }
+            Map<String, YearlyStatsDTO> singleYearMap = new HashMap<>();
+            singleYearMap.put(String.valueOf(year), stats);
+
+            // Add it to finalList
+            finalList.add(singleYearMap);
+        }
+
+        // 7) Construct and return the HistoryLogsResponse
+        HistoryLogsResponse response = new HistoryLogsResponse(finalList);
+        return response;
+    }
+
+    public HistoryLogsResponse getHistoryLogsByFaculty(Long facultyUserId) {
+        // 1) Get all proposals for this particular faculty member
+        List<Proposal> facultyProposals = proposalRepo.findByUser_UserIdOrderByProposalDateDesc(facultyUserId);
+
+        // 2) Create a data structure to hold stats:
+        // Map<Integer, YearlyStatsDTO> yearMap = new HashMap<>();
+
+        Map<Integer, YearlyStatsDTO> yearMap = new TreeMap<>(Collections.reverseOrder());
+
+
+        // 3) Loop over each proposal and do the same grouping as in getHistoryLogs():
+        for (Proposal p : facultyProposals) {
+            // skip if date is null
+            if (p.getProposalDate() == null)
+                continue;
+
+            int year = p.getProposalDate().getYear();
+
+            // If not present, create a new YearlyStatsDTO
+            if (!yearMap.containsKey(year)) {
+                YearlyStatsDTO ystats = new YearlyStatsDTO();
+                ystats.setMonthlyBreakdown(new HashMap<>());
+                yearMap.put(year, ystats);
+            }
+
+            YearlyStatsDTO ydto = yearMap.get(year);
+            // bump totalProposals
+            ydto.setTotalProposals(ydto.getTotalProposals() + 1);
+
+            // if approved => bump approvedProposals, add to budgetApproved
+            if ("APPROVED".equalsIgnoreCase(p.getStatus())) {
+                ydto.setApprovedProposals(ydto.getApprovedProposals() + 1);
+                double cost = (p.getEstimatedCost() != null) ? p.getEstimatedCost() : 0.0;
+                ydto.setBudgetApproved(ydto.getBudgetApproved() + cost);
+            }
+
+            // figure out month name
+            String monthName = p.getProposalDate().getMonth().name().substring(0, 3);
+            MonthlyStatsDTO mstats = ydto.getMonthlyBreakdown().get(monthName);
+            if (mstats == null) {
+                mstats = new MonthlyStatsDTO();
+                ydto.getMonthlyBreakdown().put(monthName, mstats);
+            }
+
+            // bump monthly totals
+            mstats.setTotal(mstats.getTotal() + 1);
+            if ("APPROVED".equalsIgnoreCase(p.getStatus())) {
+                mstats.setApproved(mstats.getApproved() + 1);
+                double cost = (p.getEstimatedCost() != null) ? p.getEstimatedCost() : 0.0;
+                mstats.setBudgetApproved(mstats.getBudgetApproved() + cost);
+            }
+        }
+
+        System.out.println("YearMap: " + yearMap);
+
+        // 4) Convert Map<Integer,YearlyStatsDTO> -> List<Map<String,YearlyStatsDTO>>
+        List<Map<String, YearlyStatsDTO>> finalList = new ArrayList<>();
+        for (Map.Entry<Integer, YearlyStatsDTO> entry : yearMap.entrySet()) {
+            Integer year = entry.getKey();
+            YearlyStatsDTO stats = entry.getValue();
+
+            Map<String, YearlyStatsDTO> singleYearMap = new HashMap<>();
+            singleYearMap.put(String.valueOf(year), stats);
+
+            finalList.add(singleYearMap);
+        }
+
+        // 5) Build and return the HistoryLogsResponse
+        HistoryLogsResponse response = new HistoryLogsResponse(finalList);
+        return response;
     }
 
     public Proposal convertToEntity(ProposalDTO proposalDTO) {

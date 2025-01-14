@@ -113,6 +113,13 @@ public class ApprovalHistoryService {
         User approver = history.getApprover();
     String fullName = approver.getFirstName() + " " + approver.getLastName();
     dto.setApproverName(fullName);
+
+    if (approver.getRoles() != null) {
+        dto.setApproverRole(approver.getRoles().getRoleName());  // e.g. "ADMIN", "APPROVER", etc.
+    } else {
+        dto.setApproverRole("Unknown Role");
+    }
+    
         return dto;
     }
     

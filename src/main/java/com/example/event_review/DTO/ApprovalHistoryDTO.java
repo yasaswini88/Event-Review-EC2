@@ -14,6 +14,8 @@ public class ApprovalHistoryDTO {
 
     private String approverName;
 
+    private String approverRole;
+
     public Long getFundingSourceId() {
         return fundingSourceId;
     }   
@@ -85,5 +87,13 @@ public class ApprovalHistoryDTO {
 
     public void setApproverName(String approverName) {
         this.approverName = approverName;
+    }
+
+    public String getApproverRole() {
+        return approverRole;
+    }
+
+    public void setApproverRole(String approverRole) {
+        this.approverRole = approverRole;
     }
 }
