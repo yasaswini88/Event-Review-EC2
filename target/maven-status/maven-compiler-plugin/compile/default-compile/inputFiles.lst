@@ -1,4 +1,5 @@
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Config/GoogleAuthConfig.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Config/GoogleCloudConfig.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Config/WebConfig.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ApprovalHistoryController.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ApproverBudgetController.java
@@ -9,6 +10,7 @@
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/ProposalController.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/PurchaseOrderController.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/RolesController.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/SpeechController.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Controller/UserController.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/ApprovalHistoryDTO.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/DTO/CodeVerificationRequest.java

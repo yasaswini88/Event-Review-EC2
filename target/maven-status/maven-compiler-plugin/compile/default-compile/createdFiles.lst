@@ -4,6 +4,8 @@ com/example/event_review/DTO/ProposalDTO.class
 com/example/event_review/DTO/MonthlyStatsDTO.class
 com/example/event_review/Service/UserService.class
 com/example/event_review/Controller/FundingSourceController.class
+com/example/event_review/Config/GoogleCloudConfig.class
+com/example/event_review/Controller/SpeechController$SpeechRequest.class
 com/example/event_review/DTO/PasswordResetRequest.class
 com/example/event_review/Service/ApproverBudgetService.class
 com/example/event_review/Repo/PurchaseOrderRepo.class
@@ -23,6 +25,7 @@ com/example/event_review/Service/EmailService.class
 com/example/event_review/Service/DepartmentService.class
 com/example/event_review/DTO/GoogleLoginRequest.class
 com/example/event_review/Repo/DepartmentRepo.class
+com/example/event_review/Controller/SpeechController$TtsRequest.class
 com/example/event_review/Repo/ApproverBudgetRepo.class
 com/example/event_review/Repo/EventRepo.class
 com/example/event_review/Config/GoogleAuthConfig.class
@@ -42,6 +45,7 @@ com/example/event_review/DTO/ForgotPasswordRequest.class
 com/example/event_review/Service/RolesService.class
 com/example/event_review/DTO/YearlyStatsDTO.class
 com/example/event_review/Controller/ApproverBudgetController.class
+com/example/event_review/Controller/SpeechController$TtsResponse.class
 com/example/event_review/Service/ProposalService.class
 com/example/event_review/Controller/RolesController.class
 com/example/event_review/Entity/PurchaseOrder.class
@@ -59,4 +63,5 @@ com/example/event_review/DTO/CodeVerificationRequest.class
 com/example/event_review/Controller/ProposalController.class
 com/example/event_review/Entity/FundingSource.class
 com/example/event_review/Service/EventService.class
+com/example/event_review/Controller/SpeechController.class
 com/example/event_review/DTO/EventDTO.class
