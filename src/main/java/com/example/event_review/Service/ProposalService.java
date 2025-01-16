@@ -8,10 +8,12 @@ import com.example.event_review.DTO.YearlyStatsDTO;
 import com.example.event_review.Entity.Department;
 import com.example.event_review.Entity.FundingSource;
 import com.example.event_review.Entity.Proposal;
+import com.example.event_review.Entity.ProposalHistory;
 import com.example.event_review.Entity.PurchaseOrder;
 import com.example.event_review.Entity.User;
 import com.example.event_review.Repo.DepartmentRepo;
 import com.example.event_review.Repo.FundingSourceRepo;
+import com.example.event_review.Repo.ProposalHistoryRepo;
 import com.example.event_review.Repo.ProposalRepo;
 import com.example.event_review.Repo.PurchaseOrderRepo;
 import com.example.event_review.Repo.UserRepo;
@@ -62,6 +64,10 @@ public class ProposalService {
 
     @Autowired
     private ApproverBudgetService approverBudgetService;
+
+    @Autowired
+private ProposalHistoryRepo proposalHistoryRepo;
+
 
     public List<ProposalDTO> getAllProposals() {
         try {
@@ -277,22 +283,111 @@ public class ProposalService {
         }
     }
 
-    public ProposalDTO updateProposal(Long id, ProposalDTO proposalDTO) {
-        try {
-            Optional<Proposal> existingProposal = proposalRepo.findById(id);
-            if (existingProposal.isPresent()) {
-                Proposal proposal = existingProposal.get();
-                updateProposalFromDTO(proposal, proposalDTO);
-                return convertToDTO(proposalRepo.save(proposal));
-            }
-            return null;
-        } catch (Exception e) {
-            logger.error("Error updating proposal with id {}: ", id, e);
-            return null;
-        }
-    } // This method is used to update an existing proposal. It first checks if the
+    // public ProposalDTO updateProposal(Long id, ProposalDTO proposalDTO) {
+    //     try {
+    //         Optional<Proposal> existingProposal = proposalRepo.findById(id);
+    //         if (existingProposal.isPresent()) {
+    //             Proposal proposal = existingProposal.get();
+    //             updateProposalFromDTO(proposal, proposalDTO);
+    //             return convertToDTO(proposalRepo.save(proposal));
+    //         }
+    //         return null;
+    //     } catch (Exception e) {
+    //         logger.error("Error updating proposal with id {}: ", id, e);
+    //         return null;
+    //     }
+    // } // This method is used to update an existing proposal. It first checks if the
       // proposal exists, then updates the proposal with the new data provided in the
       // ProposalDTO object.
+
+      public ProposalDTO updateProposal(Long id, ProposalDTO proposalDTO) {
+    try {
+        // 1) Check if the proposal exists
+        Optional<Proposal> existingProposalOpt = proposalRepo.findById(id);
+        if (existingProposalOpt.isPresent()) {
+            Proposal proposal = existingProposalOpt.get();
+
+            // -----------------------------------------------------------------
+            // 2) BUILD A ProposalHistory RECORD USING THE *OLD* DATA
+            // -----------------------------------------------------------------
+            ProposalHistory oldVersion = new ProposalHistory();
+            oldVersion.setProposal(proposal);  // link to the main proposal
+
+            // Copy all fields you want to preserve
+            oldVersion.setItemName(proposal.getItemName());
+            oldVersion.setCategory(proposal.getCategory());
+            oldVersion.setDescription(proposal.getDescription());
+            oldVersion.setQuantity(proposal.getQuantity());
+            oldVersion.setEstimatedCost(proposal.getEstimatedCost());
+            oldVersion.setVendorInfo(proposal.getVendorInfo());
+            oldVersion.setBusinessPurpose(proposal.getBusinessPurpose());
+            oldVersion.setStatus(proposal.getStatus());
+            oldVersion.setProposalDate(proposal.getProposalDate());
+            
+            // If there's a currentApprover, store that userId
+            oldVersion.setCurrentApproverId(
+                proposal.getCurrentApprover() != null 
+                    ? proposal.getCurrentApprover().getUserId() 
+                    : null
+            );
+            
+            // Department ID
+            oldVersion.setDepartmentId(proposal.getDepartment().getDeptId());
+
+            // versionNumber logic: find the highest version so far and add 1
+            List<ProposalHistory> existingVersions = proposalHistoryRepo.findByProposal_ProposalId(id);
+            int highestVersion = 0;
+            for (ProposalHistory hist : existingVersions) {
+                if (hist.getVersionNumber() != null && hist.getVersionNumber() > highestVersion) {
+                    highestVersion = hist.getVersionNumber();
+                }
+            }
+            oldVersion.setVersionNumber(highestVersion + 1);
+
+            // Extra metadata (if desired)
+            oldVersion.setChangedOn(LocalDateTime.now());
+            oldVersion.setChangedBy(proposalDTO.getUserId()); 
+              // e.g. the user who triggered this update
+
+            // 3) SAVE THE "OLD" VERSION
+            proposalHistoryRepo.save(oldVersion);
+
+            // -----------------------------------------------------------------
+            // 4) OVERWRITE THE PROPOSAL WITH NEW DATA (original functionality)
+            // -----------------------------------------------------------------
+            // This is your existing line from "updateProposalFromDTO(...)"
+            updateProposalFromDTO(proposal, proposalDTO);
+
+            // If the department changed, set it:
+            if (proposalDTO.getDepartmentId() != null) {
+                Optional<Department> deptOpt = departmentRepo.findById(proposalDTO.getDepartmentId());
+                deptOpt.ifPresent(proposal::setDepartment);
+            }
+
+            // If the currentApprover changed, set it:
+            if (proposalDTO.getCurrentApproverId() != null) {
+                Optional<User> approverOpt = userRepo.findById(proposalDTO.getCurrentApproverId());
+                approverOpt.ifPresent(proposal::setCurrentApprover);
+            }
+
+            // 5) SAVE THE UPDATED PROPOSAL (original logic)
+            Proposal updatedProposal = proposalRepo.save(proposal);
+
+            // 6) RETURN THE UPDATED PROPOSAL AS DTO (original logic)
+            return convertToDTO(updatedProposal);
+        }
+
+        // If not present, return null or handle 404
+        return null;
+
+    } catch (Exception e) {
+        // Original error-handling
+        logger.error("Error updating proposal with id {}: ", id, e);
+        return null;
+    }
+}
+
+
 
     public ProposalDTO updateProposalStatus(Long id, String newStatus, Long approverId, Long fundingSourceId,
             String comments) {

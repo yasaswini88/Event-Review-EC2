@@ -2,6 +2,8 @@ package com.example.event_review.Entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class Proposal {
@@ -20,6 +22,9 @@ public class Proposal {
     @ManyToOne
     @JoinColumn(name = "dept_id", nullable = false)
     private Department department;
+
+    @OneToMany(mappedBy = "proposal", cascade = CascadeType.ALL, orphanRemoval = true)
+private List<ProposalHistory> historyVersions = new ArrayList<>();
     
     public Long getDeptId() {
         return department.getDeptId();
@@ -37,6 +42,8 @@ public class Proposal {
     private String businessPurpose;
     private String status;
     private LocalDateTime proposalDate;
+
+
 
     // getters and setters 
 
@@ -124,6 +131,12 @@ public class Proposal {
     }
     public void setDepartment(Department department) {
         this.department = department;
+    }
+    public List<ProposalHistory> getHistoryVersions() {
+        return historyVersions;
+    }
+    public void setHistoryVersions(List<ProposalHistory> historyVersions) {
+        this.historyVersions = historyVersions;
     }
 
     

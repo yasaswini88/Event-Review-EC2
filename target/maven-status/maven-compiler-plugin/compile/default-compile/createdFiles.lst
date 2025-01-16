@@ -34,6 +34,8 @@ com/example/event_review/Repo/UserRepo.class
 com/example/event_review/Entity/ApproverBudget.class
 com/example/event_review/Controller/UserController.class
 com/example/event_review/Entity/User.class
+com/example/event_review/Repo/ProposalHistoryRepo.class
+com/example/event_review/Entity/ProposalHistory.class
 com/example/event_review/Entity/Event.class
 com/example/event_review/Repo/PurchaseOrderNoteRepo.class
 com/example/event_review/DTO/PurchaseOrderDTO.class

@@ -4,6 +4,8 @@ import com.example.event_review.DTO.ApprovalHistoryDTO;
 import com.example.event_review.DTO.FacultyStatsDTO;
 import com.example.event_review.DTO.HistoryLogsResponse;
 import com.example.event_review.DTO.ProposalDTO;
+import com.example.event_review.Entity.ProposalHistory;
+import com.example.event_review.Repo.ProposalHistoryRepo;
 import com.example.event_review.Service.ApprovalHistoryService;
 import com.example.event_review.Service.ProposalService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,9 @@ public class ProposalController {
 
     @Autowired
     private ApprovalHistoryService approvalHistoryService;
+
+    @Autowired
+private ProposalHistoryRepo proposalHistoryRepo;
 
     @GetMapping
     public List<ProposalDTO> getAllProposals() {
@@ -196,5 +201,11 @@ public class ProposalController {
         // Step 2: return the JSON
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/{proposalId}/versions")
+public ResponseEntity<List<ProposalHistory>> getProposalVersions(@PathVariable Long proposalId) {
+    List<ProposalHistory> versionList = proposalHistoryRepo.findByProposal_ProposalId(proposalId);
+    return ResponseEntity.ok(versionList);
+}
 
 }

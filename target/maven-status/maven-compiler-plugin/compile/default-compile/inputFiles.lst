@@ -36,6 +36,7 @@
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/Event.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/FundingSource.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/Proposal.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/ProposalHistory.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/PurchaseOrder.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/PurchaseOrderNote.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Entity/Roles.java
@@ -47,6 +48,7 @@
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/DepartmentRepo.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/EventRepo.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/FundingSourceRepo.java
+/home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/ProposalHistoryRepo.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/ProposalRepo.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/PurchaseOrderNoteRepo.java
 /home/ec2-user/event-review/src/main/java/com/example/event_review/Repo/PurchaseOrderRepo.java
