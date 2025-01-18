@@ -59,5 +59,6 @@ hs_err_pid*
 replay_pid*
 
 target/classes/creds/chatbot-stt-and-tts.json
+
 target/event-review-0.0.1-SNAPSHOT.jar
 target/nohup.out
