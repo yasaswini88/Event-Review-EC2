@@ -4,6 +4,7 @@ import com.example.event_review.DTO.ApprovalHistoryDTO;
 import com.example.event_review.Entity.ApprovalHistory;
 import com.example.event_review.Entity.FundingSource;
 import com.example.event_review.Entity.Proposal;
+import com.example.event_review.Entity.Roles;
 import com.example.event_review.Entity.User;
 import com.example.event_review.Repo.ApprovalHistoryRepo;
 import com.example.event_review.Repo.FundingSourceRepo;
@@ -42,21 +43,19 @@ public class ApprovalHistoryService {
     // }
     public List<ApprovalHistoryDTO> getHistoryByProposalId(Long proposalId) {
         logger.info("Fetching approval history for proposal ID: {}", proposalId);
-    
-        List<ApprovalHistory> historyList =
-            historyRepo.findByProposal_ProposalIdOrderByActionDateDesc(proposalId);
-    
+
+        List<ApprovalHistory> historyList = historyRepo.findByProposal_ProposalIdOrderByActionDateDesc(proposalId);
+
         if (historyList == null || historyList.isEmpty()) {
             logger.warn("No approval history found for proposal ID: {}", proposalId);
             // Return an empty list. This will yield 200 OK with an empty [] in JSON.
             return Collections.emptyList();
         }
-    
+
         return historyList.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
-    
 
     public void addHistoryEntry(Long proposalId, Long approverId, Long fundingSourceId,
             String oldStatus, String newStatus, String comments,
@@ -86,7 +85,6 @@ public class ApprovalHistoryService {
             history.setNewStatus(newStatus);
             history.setComments(comments);
             history.setActionDate(customActionDate);
-            
 
             historyRepo.save(history);
         }
@@ -97,30 +95,45 @@ public class ApprovalHistoryService {
         dto.setId(history.getId());
         dto.setProposalId(history.getProposal().getProposalId());
         dto.setApproverId(history.getApprover().getUserId());
-        
+
         // Safely handle a missing funding source:
         if (history.getFundingSource() != null) {
             dto.setFundingSourceId(history.getFundingSource().getSourceId());
         } else {
             dto.setFundingSourceId(null);
         }
-    
+
         dto.setOldStatus(history.getOldStatus());
         dto.setNewStatus(history.getNewStatus());
         dto.setComments(history.getComments());
         dto.setActionDate(history.getActionDate());
 
         User approver = history.getApprover();
-    String fullName = approver.getFirstName() + " " + approver.getLastName();
-    dto.setApproverName(fullName);
+        String fullName = approver.getFirstName() + " " + approver.getLastName();
+        dto.setApproverName(fullName);
 
-    if (approver.getRoles() != null) {
-        dto.setApproverRole(approver.getRoles().getRoleName());  // e.g. "ADMIN", "APPROVER", etc.
-    } else {
-        dto.setApproverRole("Unknown Role");
-    }
-    
+        // if (approver.getRoles() != null && !approver.getRoles().isEmpty()) {
+        // Roles firstRole = approver.getRoles().iterator().next();
+        // dto.setApproverRole(firstRole.getRoleName());
+        // } else {
+        // dto.setApproverRole("Unknown Role");
+        // } single role only .
+
+        if (approver.getRoles() != null) {
+            if (approver.getRoles() != null && !approver.getRoles().isEmpty()) {
+                String roleNames = approver.getRoles().stream()
+                        .map(r -> r.getRoleName())
+                        .collect(Collectors.joining(", "));
+                dto.setApproverRole(roleNames);
+            } else {
+                dto.setApproverRole("Unknown Role");
+            }
+
+        } else {
+            dto.setApproverRole("Unknown Role");
+        }
+
         return dto;
     }
-    
+
 }

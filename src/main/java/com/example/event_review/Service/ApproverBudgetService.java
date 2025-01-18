@@ -197,13 +197,28 @@ public class ApproverBudgetService {
     
 
     /** Utility checks **/
-    private boolean isAdmin(User user) {
-        return user.getRoles() != null 
-               && "Admin".equalsIgnoreCase(user.getRoles().getRoleName());
-    }
+    // private boolean isAdmin(User user) {
+    //     return user.getRoles() != null 
+    //            && "Admin".equalsIgnoreCase(user.getRoles().getRoleName());
+    // }
 
-    private boolean isApprover(User user) {
+    // private boolean isApprover(User user) {
+    //     return user.getRoles() != null 
+    //            && "Approver".equalsIgnoreCase(user.getRoles().getRoleName());
+    // }
+
+    private boolean isAdmin(User user) {
+        // If roles are not null, check if any role has roleName == "Admin"
         return user.getRoles() != null 
-               && "Approver".equalsIgnoreCase(user.getRoles().getRoleName());
+               && user.getRoles().stream()
+                        .anyMatch(r -> "Admin".equalsIgnoreCase(r.getRoleName()));
     }
+    
+    private boolean isApprover(User user) {
+        // If roles are not null, check if any role has roleName == "Approver"
+        return user.getRoles() != null
+               && user.getRoles().stream()
+                        .anyMatch(r -> "Approver".equalsIgnoreCase(r.getRoleName()));
+    }
+    
 }

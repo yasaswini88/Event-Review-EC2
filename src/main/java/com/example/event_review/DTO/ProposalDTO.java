@@ -1,6 +1,7 @@
 package com.example.event_review.DTO;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class ProposalDTO {
     private Long proposalId;
@@ -13,7 +14,12 @@ public class ProposalDTO {
     private String vendorInfo;
     private String businessPurpose;
     private String status;
+
+
+   
+
     private LocalDateTime proposalDate;
+    private LocalDate expectedDueDate;
     private Long currentApproverId;
     private Long departmentId;
     private String orderStatus;
@@ -154,5 +160,13 @@ public void setDeliveryStatus(String deliveryStatus) {
 
     public void setCurrentApproverId(Long currentApproverId) {
         this.currentApproverId = currentApproverId;
+    }
+
+    public LocalDate getExpectedDueDate() {
+        return expectedDueDate;
+    }
+    
+    public void setExpectedDueDate(LocalDate expectedDueDate) {
+        this.expectedDueDate = expectedDueDate;
     }
 }

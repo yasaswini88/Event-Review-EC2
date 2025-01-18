@@ -2,17 +2,19 @@ package com.example.event_review.Entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
 /**
- * This entity/table stores *older versions* of a Proposal whenever the Proposal is updated.
+ * This entity/table stores *older versions* of a Proposal whenever the Proposal
+ * is updated.
  * Each row is basically a snapshot of a Proposal at a certain point in time.
  */
 @Entity
 @Table(name = "proposal_history")
 public class ProposalHistory {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
@@ -36,27 +38,38 @@ public class ProposalHistory {
     private LocalDateTime proposalDate;
     private Long currentApproverId;
     private Long departmentId;
+    private LocalDate expectedDueDate;
 
     // 2) A version number
     // We'll store "1" for the first version, "2" for the second, etc.
     private Integer versionNumber;
 
     // 3) Some metadata about the "change"
-    private LocalDateTime changedOn; 
-    private Long changedBy;  // e.g. userId of who caused the version, or email
+    private LocalDateTime changedOn;
+    private Long changedBy; // e.g. userId of who caused the version, or email
 
     // ========== GETTERS / SETTERS ==========
 
     public Long getId() {
         return id;
     }
+
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public LocalDate getExpectedDueDate() {
+        return expectedDueDate;
+    }
+
+    public void setExpectedDueDate(LocalDate expectedDueDate) {
+        this.expectedDueDate = expectedDueDate;
     }
 
     public Proposal getProposal() {
         return proposal;
     }
+
     public void setProposal(Proposal proposal) {
         this.proposal = proposal;
     }
@@ -64,6 +77,7 @@ public class ProposalHistory {
     public String getItemName() {
         return itemName;
     }
+
     public void setItemName(String itemName) {
         this.itemName = itemName;
     }
@@ -71,6 +85,7 @@ public class ProposalHistory {
     public String getCategory() {
         return category;
     }
+
     public void setCategory(String category) {
         this.category = category;
     }
@@ -78,6 +93,7 @@ public class ProposalHistory {
     public String getDescription() {
         return description;
     }
+
     public void setDescription(String description) {
         this.description = description;
     }
@@ -85,6 +101,7 @@ public class ProposalHistory {
     public Integer getQuantity() {
         return quantity;
     }
+
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
@@ -92,6 +109,7 @@ public class ProposalHistory {
     public Double getEstimatedCost() {
         return estimatedCost;
     }
+
     public void setEstimatedCost(Double estimatedCost) {
         this.estimatedCost = estimatedCost;
     }
@@ -99,6 +117,7 @@ public class ProposalHistory {
     public String getVendorInfo() {
         return vendorInfo;
     }
+
     public void setVendorInfo(String vendorInfo) {
         this.vendorInfo = vendorInfo;
     }
@@ -106,6 +125,7 @@ public class ProposalHistory {
     public String getBusinessPurpose() {
         return businessPurpose;
     }
+
     public void setBusinessPurpose(String businessPurpose) {
         this.businessPurpose = businessPurpose;
     }
@@ -113,6 +133,7 @@ public class ProposalHistory {
     public String getStatus() {
         return status;
     }
+
     public void setStatus(String status) {
         this.status = status;
     }
@@ -120,6 +141,7 @@ public class ProposalHistory {
     public LocalDateTime getProposalDate() {
         return proposalDate;
     }
+
     public void setProposalDate(LocalDateTime proposalDate) {
         this.proposalDate = proposalDate;
     }
@@ -127,6 +149,7 @@ public class ProposalHistory {
     public Long getCurrentApproverId() {
         return currentApproverId;
     }
+
     public void setCurrentApproverId(Long currentApproverId) {
         this.currentApproverId = currentApproverId;
     }
@@ -134,6 +157,7 @@ public class ProposalHistory {
     public Long getDepartmentId() {
         return departmentId;
     }
+
     public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
     }
@@ -141,6 +165,7 @@ public class ProposalHistory {
     public Integer getVersionNumber() {
         return versionNumber;
     }
+
     public void setVersionNumber(Integer versionNumber) {
         this.versionNumber = versionNumber;
     }
@@ -148,6 +173,7 @@ public class ProposalHistory {
     public LocalDateTime getChangedOn() {
         return changedOn;
     }
+
     public void setChangedOn(LocalDateTime changedOn) {
         this.changedOn = changedOn;
     }
@@ -155,8 +181,8 @@ public class ProposalHistory {
     public Long getChangedBy() {
         return changedBy;
     }
+
     public void setChangedBy(Long changedBy) {
         this.changedBy = changedBy;
     }
 }
-

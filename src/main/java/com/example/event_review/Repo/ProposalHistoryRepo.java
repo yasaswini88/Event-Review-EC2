@@ -12,4 +12,6 @@ public interface ProposalHistoryRepo extends JpaRepository<ProposalHistory, Long
 
     // If you want to get the highest version number for a given proposal, you
     // can do a custom query or rely on other logic in your service.
+
+    
 }

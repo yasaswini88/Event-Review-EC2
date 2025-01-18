@@ -19,92 +19,93 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 public class UserService {
     @Autowired
     private UserRepo userRepo;
-    
+
     @Autowired
     private RolesRepo rolesRepo;
-    
+
     @Autowired
     private VerificationCodeRepo verificationCodeRepo;
-    
+
     @Autowired
     private EmailService emailService;
 
     // Basic CRUD Operations
 
     @Autowired
-private GoogleIdTokenVerifier googleIdTokenVerifier;
+    private GoogleIdTokenVerifier googleIdTokenVerifier;
 
-// public Optional<User> handleGoogleLogin(String credential) {
-//     try {
-//         // Verify the Google token
-//         GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
-        
-//         if (idToken != null) {
-//             // Extract email from the token payload
-//             GoogleIdToken.Payload payload = idToken.getPayload();
-//             String email = payload.getEmail();
-            
-//             // Check if the user exists in the database
-//             return userRepo.findByEmail(email); // Return the user if found
-//         }
-//         return Optional.empty(); // Return empty if token verification fails
-//     } catch (Exception e) {
-//         throw new RuntimeException("Error processing Google login", e);
-//     }
-// }
+    // public Optional<User> handleGoogleLogin(String credential) {
+    // try {
+    // // Verify the Google token
+    // GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
 
+    // if (idToken != null) {
+    // // Extract email from the token payload
+    // GoogleIdToken.Payload payload = idToken.getPayload();
+    // String email = payload.getEmail();
 
-public Optional<UserDTO> handleGoogleLogin(String credential) {
-    try {
-        // 1. Verify the Google token
-        GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
-        if (idToken == null) {
-            // Token verification failed
-            return Optional.empty();
+    // // Check if the user exists in the database
+    // return userRepo.findByEmail(email); // Return the user if found
+    // }
+    // return Optional.empty(); // Return empty if token verification fails
+    // } catch (Exception e) {
+    // throw new RuntimeException("Error processing Google login", e);
+    // }
+    // }
+
+    public Optional<UserDTO> handleGoogleLogin(String credential) {
+        try {
+            // 1. Verify the Google token
+            GoogleIdToken idToken = googleIdTokenVerifier.verify(credential);
+            if (idToken == null) {
+                // Token verification failed
+                return Optional.empty();
+            }
+
+            // 2. Extract email and optionally other claims from the token payload
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String givenName = (String) payload.get("given_name"); // optional
+            String familyName = (String) payload.get("family_name"); // optional
+
+            // 3. Check if user already exists in the DB
+            Optional<User> existingUserOpt = userRepo.findByEmail(email);
+            User user;
+            if (existingUserOpt.isPresent()) {
+                // 3a. If user already exists, reuse it
+                user = existingUserOpt.get();
+            } else {
+                // 3b. If user doesn't exist, create a new one
+                Roles facultyRole = rolesRepo.findById(2L)
+                        .orElseThrow(() -> new RuntimeException("Faculty role with ID=2 not found!"));
+
+                // Create new user
+                user = new User();
+                user.setEmail(email);
+                user.setFirstName(givenName);
+                user.setLastName(familyName);
+                user.setPassword("GOOGLE_SSO"); // or null, if you prefer
+                // user.setRoles(facultyRole);
+
+                Set<Roles> roleSet = new HashSet<>();
+                roleSet.add(facultyRole);
+                user.setRoles(roleSet);
+
+                // Save user (automatically assigns userId)
+                user = userRepo.save(user);
+            }
+
+            // 4. Convert the user entity to a UserDTO
+            UserDTO userDTO = convertToDTO(user);
+
+            // 5. Return the newly created or existing user as a DTO
+            return Optional.of(userDTO);
+
+        } catch (Exception e) {
+            // If there's an error verifying or processing the token
+            throw new RuntimeException("Error processing Google login", e);
         }
-
-        // 2. Extract email and optionally other claims from the token payload
-        GoogleIdToken.Payload payload = idToken.getPayload();
-        String email = payload.getEmail();
-        String givenName = (String) payload.get("given_name");    // optional
-        String familyName = (String) payload.get("family_name");  // optional
-
-        // 3. Check if user already exists in the DB
-        Optional<User> existingUserOpt = userRepo.findByEmail(email);
-        User user;
-        if (existingUserOpt.isPresent()) {
-            // 3a. If user already exists, reuse it
-            user = existingUserOpt.get();
-        } else {
-            // 3b. If user doesn't exist, create a new one
-            Roles facultyRole = rolesRepo.findById(2L)
-                .orElseThrow(() -> new RuntimeException("Faculty role with ID=2 not found!"));
-
-            // Create new user
-            user = new User();
-            user.setEmail(email);
-            user.setFirstName(givenName);
-            user.setLastName(familyName);
-            user.setPassword("GOOGLE_SSO"); // or null, if you prefer
-            user.setRoles(facultyRole);
-            
-            // Save user (automatically assigns userId)
-            user = userRepo.save(user);
-        }
-
-        // 4. Convert the user entity to a UserDTO
-        UserDTO userDTO = convertToDTO(user);
-
-        // 5. Return the newly created or existing user as a DTO
-        return Optional.of(userDTO);
-
-    } catch (Exception e) {
-        // If there's an error verifying or processing the token
-        throw new RuntimeException("Error processing Google login", e);
     }
-}
-
-
 
     public List<UserDTO> getAllUsers() {
         return userRepo.findAll()
@@ -118,18 +119,42 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
                 .map(this::convertToDTO);
     }
 
-   public User addUser(User user) {
-    if (user.getRoles() != null && user.getRoles().getRoleId() != null) {
-        Roles roles = rolesRepo.findById(user.getRoles().getRoleId())
-                .orElseThrow(() -> new RuntimeException("Role not found with ID: " + user.getRoles().getRoleId()));
-        user.setRoles(roles);
-    } else {
-        throw new IllegalArgumentException("Role must be provided in the request");
+    // public User addUser(User user) {
+    // if (user.getRoles() != null && user.getRoles().getRoleId() != null) {
+    // Roles roles = rolesRepo.findById(user.getRoles().getRoleId())
+    // .orElseThrow(() -> new RuntimeException("Role not found with ID: " +
+    // user.getRoles().getRoleId()));
+    // user.setRoles(roles);
+    // } else {
+    // throw new IllegalArgumentException("Role must be provided in the request");
+    // }
+    // return userRepo.save(user);
+    // }
+
+    public User addUser(User user) {
+        // user.getRoles() is a Set<Roles> from the JSON
+        Set<Roles> incomingRoles = user.getRoles(); // might be empty or null
+
+        Set<Roles> validatedRoles = new HashSet<>();
+        if (incomingRoles != null) {
+            for (Roles r : incomingRoles) {
+                if (r.getRoleId() != null) {
+                    Roles existingRole = rolesRepo.findById(r.getRoleId())
+                            .orElseThrow(() -> new RuntimeException("Role not found with ID: " + r.getRoleId()));
+                    validatedRoles.add(existingRole);
+                }
+            }
+        }
+
+        // Now set validated roles to user
+        user.setRoles(validatedRoles);
+
+        // If you want a default password or any other logic, handle it here
+        // e.g. if user.getPassword() == null, set a default? etc.
+
+        // Finally save
+        return userRepo.save(user);
     }
-    return userRepo.save(user);
-}
-
-
 
     public void deleteUser(Long userId) {
         userRepo.deleteById(userId);
@@ -139,7 +164,7 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
     public Optional<User> updateUserRole(Long userId, Long roleId, User updatedUser) {
         Optional<User> userOpt = userRepo.findByUserId(userId);
         Optional<Roles> roleOpt = rolesRepo.findByRoleId(roleId);
-        
+
         if (userOpt.isPresent() && roleOpt.isPresent()) {
             User user = userOpt.get();
             // user.setPosition(updatedUser.getPosition());
@@ -147,7 +172,12 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
                 user.setPassword(updatedUser.getPassword());
                 // user.setConfirmPassword(updatedUser.getConfirmPassword());
             }
-            user.setRoles(roleOpt.get());
+            // user.setRoles(roleOpt.get());
+
+            Roles singleRole = roleOpt.get();
+            Set<Roles> currentRoles = user.getRoles(); // existing roles
+            currentRoles.add(singleRole); // add the new one
+            user.setRoles(currentRoles);
             return Optional.of(userRepo.save(user));
         }
         return Optional.empty();
@@ -180,8 +210,7 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
         emailService.sendSimpleEmail(
                 email,
                 "Password Reset Verification Code",
-                "Your verification code is: " + code
-        );
+                "Your verification code is: " + code);
     }
 
     public boolean verifyCode(CodeVerificationRequest request) {
@@ -213,7 +242,7 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setPassword(request.getNewPassword());
-        
+
         userRepo.save(user);
         verificationCodeRepo.deleteByEmail(request.getEmail());
     }
@@ -228,40 +257,62 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
                     user.setEmail(updatedUser.getEmail());
                     user.setPhoneNumber(updatedUser.getPhoneNumber());
                     user.setGender(updatedUser.getGender());
-    
+
                     // Update password if provided
                     if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
                         user.setPassword(updatedUser.getPassword());
                     }
-    
+
                     // NEW: Update role if provided
-                    if (updatedUser.getRoles() != null && updatedUser.getRoles().getRoleId() != null) {
-                        Long newRoleId = updatedUser.getRoles().getRoleId();
-                        Roles newRole = rolesRepo.findById(newRoleId)
-                                .orElseThrow(() -> new RuntimeException("Role not found with ID: " + newRoleId));
-                        user.setRoles(newRole);
+                    // if (updatedUser.getRoles() != null && updatedUser.getRoles().getRoleId() !=
+                    // null) {
+                    // Long newRoleId = updatedUser.getRoles().getRoleId();
+                    // Roles newRole = rolesRepo.findById(newRoleId)
+                    // .orElseThrow(() -> new RuntimeException("Role not found with ID: " +
+                    // newRoleId));
+                    // user.setRoles(newRole);
+                    // }
+
+                    // Example: we REPLACE the user's roles with whatever is in updatedUser
+                    if (updatedUser.getRoles() != null && !updatedUser.getRoles().isEmpty()) {
+                        // validated new roles
+                        Set<Roles> validatedRoles = new HashSet<>();
+                        for (Roles r : updatedUser.getRoles()) {
+                            // fetch from DB
+                            Roles newRole = rolesRepo.findById(r.getRoleId())
+                                    .orElseThrow(
+                                            () -> new RuntimeException("Role not found with ID: " + r.getRoleId()));
+                            validatedRoles.add(newRole);
+                        }
+
+                        // Now set the new set on the user
+                        user.setRoles(validatedRoles);
                     }
-    
+
                     return userRepo.save(user);
                 });
     }
-    
 
     // Utility Methods
     private String generateRandomCode() {
-        return String.valueOf((int)(Math.random() * 9000) + 1000);
+        return String.valueOf((int) (Math.random() * 9000) + 1000);
     }
 
     private Date generateExpirationTime() {
         return new Date(System.currentTimeMillis() + (10 * 60 * 1000)); // 10 minutes
     }
 
+  
+
     public UserDTO convertToDTO(User user) {
-        // 1. Create a RolesDTO from user.getRoles()
-        RolesDTO rolesDTO = new RolesDTO();
-        rolesDTO.setRoleId(user.getRoles().getRoleId());
-        rolesDTO.setRoleName(user.getRoles().getRoleName());
-    
+        // 1. Convert Set<Roles> to Set<RolesDTO>
+        Set<RolesDTO> roleDTOs = user.getRoles().stream().map(role -> {
+            RolesDTO dto = new RolesDTO();
+            dto.setRoleId(role.getRoleId());
+            dto.setRoleName(role.getRoleName());
+            return dto;
+        }).collect(Collectors.toSet());
+
         // 2. Create a new UserDTO
         UserDTO userDTO = new UserDTO();
         userDTO.setUserId(user.getUserId());
@@ -270,11 +321,31 @@ public Optional<UserDTO> handleGoogleLogin(String credential) {
         userDTO.setGender(user.getGender());
         userDTO.setEmail(user.getEmail());
         userDTO.setPhoneNumber(user.getPhoneNumber());
-    
-        // 3. Set roles on the UserDTO
-        userDTO.setRoles(rolesDTO);
-    
+        userDTO.setRoles(roleDTOs);
+
         return userDTO;
     }
+
+    public boolean removeRoleFromUser(Long userId, Long roleId) {
+        Optional<User> userOpt = userRepo.findById(userId);
+        Optional<Roles> roleOpt = rolesRepo.findById(roleId);
     
+        if (userOpt.isPresent() && roleOpt.isPresent()) {
+            User user = userOpt.get();
+            Roles role = roleOpt.get();
+    
+            // remove from the set
+            Set<Roles> roles = user.getRoles();
+            boolean wasRemoved = roles.remove(role);
+    
+            // save only if actually removed
+            if (wasRemoved) {
+                userRepo.save(user);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+
 }

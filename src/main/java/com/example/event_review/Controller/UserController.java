@@ -35,7 +35,10 @@ public class UserController {
     @PostMapping("/users")
     public ResponseEntity<?> addUser(@RequestBody User user) {
         try {
+            // user here has a Set<Roles>
             User newUser = userService.addUser(user);
+    
+            // Optionally convert back to DTO to return, or just return the entity
             return new ResponseEntity<>(newUser, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -43,7 +46,7 @@ public class UserController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
+    
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
@@ -120,28 +123,7 @@ public class UserController {
         }
     }
 
-    // @PostMapping("/google-login")
-    // public ResponseEntity<User> googleLogin(@RequestBody GoogleLoginRequest
-    // request) {
-    // try {
-    // return userService.handleGoogleLogin(request.getCredential())
-    // .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-    // .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
-    // } catch (Exception e) {
-    // return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-    // }
-    // }
 
-    // @PostMapping("/google-login")
-    // public ResponseEntity<User> googleLogin(@RequestBody GoogleLoginRequest request) {
-    //     try {
-    //         return userService.handleGoogleLogin(request.getCredential())
-    //                 .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
-    //                 .orElse(new ResponseEntity<>(HttpStatus.UNAUTHORIZED)); // No user found, return 401
-    //     } catch (Exception e) {
-    //         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Internal error
-    //     }
-    // }
 
     @PostMapping("/google-login")
 public ResponseEntity<UserDTO> googleLogin(@RequestBody GoogleLoginRequest request) {
@@ -162,5 +144,17 @@ public ResponseEntity<User> updateUserDetails(@PathVariable Long userId, @Reques
             .map(user -> new ResponseEntity<>(user, HttpStatus.OK))
             .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 }
+
+@DeleteMapping("/users/{userId}/roles/{roleId}")
+public ResponseEntity<?> removeUserRole(@PathVariable Long userId,
+                                        @PathVariable Long roleId) {
+    boolean success = userService.removeRoleFromUser(userId, roleId);
+    if (success) {
+        return ResponseEntity.ok("Role removed successfully");
+    } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User or Role not found");
+    }
+}
+
 
 }

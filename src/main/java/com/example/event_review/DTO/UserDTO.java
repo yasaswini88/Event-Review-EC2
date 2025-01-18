@@ -1,5 +1,7 @@
 package com.example.event_review.DTO;
 
+import java.util.Set;
+
 public class UserDTO {
 
     private Long userId;
@@ -9,14 +11,13 @@ public class UserDTO {
     private String email;
     private String phoneNumber;
 
-    // Instead of separate roleId and roleName, embed a RolesDTO
-    private RolesDTO roles;
+    // Now: multiple RolesDTO
+    private Set<RolesDTO> roles;
 
     public UserDTO() {}
 
-    // Constructor
     public UserDTO(Long userId, String firstName, String lastName, String gender,
-                   String email, String phoneNumber, RolesDTO roles) {
+                   String email, String phoneNumber, Set<RolesDTO> roles) {
         this.userId = userId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -45,6 +46,6 @@ public class UserDTO {
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
-    public RolesDTO getRoles() { return roles; }
-    public void setRoles(RolesDTO roles) { this.roles = roles; }
+    public Set<RolesDTO> getRoles() { return roles; }
+    public void setRoles(Set<RolesDTO> roles) { this.roles = roles; }
 }

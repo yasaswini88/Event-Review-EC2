@@ -20,9 +20,11 @@ import com.example.event_review.Repo.UserRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -120,31 +122,56 @@ private ProposalHistoryRepo proposalHistoryRepo;
             return false;
         }
 
-        Long roleId = user.getRoles().getRoleId();
+    //     Long roleId = user.getRoles().getRoleId();
 
-        switch (roleId.intValue()) {
-            case 1: // Admin => can see all
-                // case 4: // Purchaser => can see all
-                return true;
+    //     switch (roleId.intValue()) {
+    //         case 1: // Admin => can see all
+    //             // case 4: // Purchaser => can see all
+    //             return true;
                 
 
-            case 4: // Purchaser => can only see if proposal is approved
-                return "APPROVED".equalsIgnoreCase(proposalDTO.getStatus());
+    //         case 4: // Purchaser => can only see if proposal is approved
+    //             return "APPROVED".equalsIgnoreCase(proposalDTO.getStatus());
 
-            case 2: // Faculty => can only see proposals they created
-                return proposalDTO.getUserId().equals(currentUserId);
+    //         case 2: // Faculty => can only see proposals they created
+    //             return proposalDTO.getUserId().equals(currentUserId);
 
-            // case 2: // Faculty => can now comment on ANY proposal
-            // return true;
+    //         // case 2: // Faculty => can now comment on ANY proposal
+    //         // return true;
 
-            case 3: // Approver => can only see proposals where they are the currentApprover
-                return proposalDTO.getCurrentApproverId() != null
-                        && proposalDTO.getCurrentApproverId().equals(currentUserId);
+    //         case 3: // Approver => can only see proposals where they are the currentApprover
+    //             return proposalDTO.getCurrentApproverId() != null
+    //                     && proposalDTO.getCurrentApproverId().equals(currentUserId);
 
-            default:
-                return false;
-        }
+    //         default:
+    //             return false;
+    //     }
+    // }
+
+    boolean isAdmin     = user.getRoles().stream().anyMatch(r -> r.getRoleId() == 1);
+boolean isPurchaser = user.getRoles().stream().anyMatch(r -> r.getRoleId() == 4);
+boolean isFaculty   = user.getRoles().stream().anyMatch(r -> r.getRoleId() == 2);
+boolean isApprover  = user.getRoles().stream().anyMatch(r -> r.getRoleId() == 3);
+
+if (isAdmin) {
+    // Admin => can see all
+    return true;
+} else if (isPurchaser) {
+    // Purchaser => can only see if proposal is approved
+    return "APPROVED".equalsIgnoreCase(proposalDTO.getStatus());
+} else if (isFaculty) {
+    // Faculty => can only see proposals they created
+    return proposalDTO.getUserId().equals(currentUserId);
+} else if (isApprover) {
+    // Approver => can only see proposals where they are the currentApprover
+    return proposalDTO.getCurrentApproverId() != null
+            && proposalDTO.getCurrentApproverId().equals(currentUserId);
+} else {
+    return false;
+}
+
     }
+
 
     public List<ProposalDTO> getProposalsByApproverId(Long approverId) {
         try {
@@ -323,6 +350,8 @@ private ProposalHistoryRepo proposalHistoryRepo;
             oldVersion.setBusinessPurpose(proposal.getBusinessPurpose());
             oldVersion.setStatus(proposal.getStatus());
             oldVersion.setProposalDate(proposal.getProposalDate());
+            oldVersion.setExpectedDueDate(proposal.getExpectedDueDate());
+
             
             // If there's a currentApprover, store that userId
             oldVersion.setCurrentApproverId(
@@ -455,8 +484,11 @@ private ProposalHistoryRepo proposalHistoryRepo;
 
                     // 2) Typically fetch Purchasers (roleId=4)
                     List<User> purchasers = userRepo.findAll().stream()
-                            .filter(u -> u.getRoles() != null && u.getRoles().getRoleId() == 4)
-                            .collect(Collectors.toList());
+                    .filter(u -> u.getRoles() != null 
+                            && u.getRoles().stream().anyMatch(r -> r.getRoleId() == 4)
+                    )
+                    .collect(Collectors.toList());
+                
 
                     // 3) Construct the link
                     String purchaserLink = "https://ravi-ai.com/proposal/" + updatedProposal.getProposalId();
@@ -651,7 +683,7 @@ private ProposalHistoryRepo proposalHistoryRepo;
                 for (User potentialViewer : allUsers) {
                     // 1) Check if the user is authorized to view
                     if (potentialViewer.getRoles() != null 
-        && potentialViewer.getRoles().getRoleId() == 1) {
+        && potentialViewer. getRoles().stream().anyMatch(r -> r.getRoleId() == 1)) {
         continue; // no notifications to admin
     }
     
@@ -739,6 +771,7 @@ private ProposalHistoryRepo proposalHistoryRepo;
         proposalDTO.setBusinessPurpose(proposal.getBusinessPurpose());
         proposalDTO.setStatus(proposal.getStatus());
         proposalDTO.setProposalDate(proposal.getProposalDate());
+        proposalDTO.setExpectedDueDate(proposal.getExpectedDueDate());
         proposalDTO.setCurrentApproverId(
                 proposal.getCurrentApprover() != null ? proposal.getCurrentApprover().getUserId() : null);
         proposalDTO.setDepartmentId(proposal.getDepartment().getDeptId());
@@ -982,6 +1015,7 @@ private ProposalHistoryRepo proposalHistoryRepo;
         proposal.setBusinessPurpose(proposalDTO.getBusinessPurpose());
         proposal.setStatus(proposalDTO.getStatus());
         proposal.setProposalDate(proposalDTO.getProposalDate());
+        proposal.setExpectedDueDate(proposalDTO.getExpectedDueDate());
 
         Optional<User> user = userRepo.findById(proposalDTO.getUserId());
         user.ifPresent(proposal::setUser);
@@ -1005,5 +1039,61 @@ private ProposalHistoryRepo proposalHistoryRepo;
         proposal.setBusinessPurpose(dto.getBusinessPurpose());
         proposal.setStatus(dto.getStatus());
         proposal.setProposalDate(dto.getProposalDate());
+        proposal.setExpectedDueDate(dto.getExpectedDueDate());
     }
+ 
+
+    @Scheduled(cron = "0 11 22 * * ?", zone = "America/New_York")
+    public void sendReminderEmails() {
+        try {
+            LocalDate today = LocalDate.now();
+            LocalDate oneWeekFromToday = today.plusDays(7);
+    
+            // Fetch proposals with pending status and due date within a week
+            List<Proposal> pendingProposals = proposalRepo.findByStatus("PENDING")
+                    .stream()
+                    .filter(proposal -> proposal.getExpectedDueDate() != null)
+                    .filter(proposal -> proposal.getExpectedDueDate().isAfter(today) && 
+                                        proposal.getExpectedDueDate().isBefore(oneWeekFromToday))
+                    .collect(Collectors.toList());
+    
+            // Loop through proposals and send emails
+            for (Proposal proposal : pendingProposals) {
+                User approver = proposal.getCurrentApprover();
+    
+                if (approver != null && approver.getEmail() != null) {
+                    String subject = "Reminder: Pending Proposal with Approaching Due Date";
+                    String message = String.format(
+                            "Dear %s,<br><br>" +
+                                    "This is a reminder that a proposal assigned to you is pending action.<br><br>" +
+                                    "Proposal Details:<br>" +
+                                    "Item: %s<br>" +
+                                    "Category: %s<br>" +
+                                    "Estimated Cost: $%.2f<br>" +
+                                    "Expected Due Date: %s<br><br>" +
+                                    "Please take the necessary action before the due date.<br>" +
+                                    "<a href='https://ravi-ai.com/proposal/%s'>Click here to view the proposal</a><br><br>" +
+
+                                    "Thank you.",
+                            approver.getFirstName(),
+                            proposal.getItemName(),
+                            proposal.getCategory(),
+                            proposal.getEstimatedCost(),
+                            proposal.getExpectedDueDate(), // Already LocalDate, no conversion needed
+                            "https://ravi-ai.com/proposal/" + proposal.getProposalId() // Proposal link
+                    );
+    
+                    // Send email
+                    emailService.sendEmailWithLink(approver.getEmail(), subject, null, message);
+                }
+            }
+    
+            logger.info("Reminder emails sent successfully for pending proposals.");
+        } catch (Exception e) {
+            logger.error("Error sending reminder emails: ", e);
+        }
+    }
+    
+
+    
 }
