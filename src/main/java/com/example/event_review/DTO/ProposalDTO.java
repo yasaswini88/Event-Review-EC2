@@ -28,6 +28,10 @@ private String deliveryStatus;
 private String requesterName;     // to display who requested it
 private String approverName; 
 
+private String requesterOriginalName;
+private String approverOriginalName;
+
+
 public String getRequesterName() {
     return requesterName;
 }
@@ -168,5 +172,19 @@ public void setDeliveryStatus(String deliveryStatus) {
     
     public void setExpectedDueDate(LocalDate expectedDueDate) {
         this.expectedDueDate = expectedDueDate;
+    }
+
+    public String getRequesterOriginalName() {
+        return requesterOriginalName;
+    }
+    public void setRequesterOriginalName(String requesterOriginalName) {
+        this.requesterOriginalName = requesterOriginalName;
+    }
+    
+    public String getApproverOriginalName() {
+        return approverOriginalName;
+    }
+    public void setApproverOriginalName(String approverOriginalName) {
+        this.approverOriginalName = approverOriginalName;
     }
 }

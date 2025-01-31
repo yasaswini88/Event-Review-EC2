@@ -3,7 +3,7 @@ package com.example.event_review.Entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+// import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity

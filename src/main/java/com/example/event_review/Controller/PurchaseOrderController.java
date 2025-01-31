@@ -2,7 +2,7 @@ package com.example.event_review.Controller;
 
 import com.example.event_review.DTO.PurchaseOrderDTO;
 import com.example.event_review.DTO.PurchaseOrderNoteDTO;
-import com.example.event_review.Entity.PurchaseOrderNote;
+// import com.example.event_review.Entity.PurchaseOrderNote;
 import com.example.event_review.Service.PurchaseOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

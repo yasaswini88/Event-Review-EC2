@@ -64,3 +64,4 @@ target/event-review-0.0.1-SNAPSHOT.jar
 target/nohup.outtarget/event-review-0.0.1-SNAPSHOT.jar
 target/nohup.out
 target/classes/creds/chatbot-stt-and-tts.json
+src/main/resources/creds/chatbot-stt-and-tts.json:1

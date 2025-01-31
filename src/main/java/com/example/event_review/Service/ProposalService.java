@@ -783,6 +783,20 @@ if (isAdmin) {
         // 1) Requester name (the person who created the proposal)
         proposalDTO.setRequesterName(proposal.getUser().getEmail());
 
+        String requesterFullName = proposal.getUser().getFirstName()
+        + " "
+        + proposal.getUser().getLastName();
+proposalDTO.setRequesterOriginalName(requesterFullName);
+
+if (proposal.getCurrentApprover() != null) {
+String approverFullName = proposal.getCurrentApprover().getFirstName()
+           + " "
+           + proposal.getCurrentApprover().getLastName();
+proposalDTO.setApproverOriginalName(approverFullName);
+} else {
+proposalDTO.setApproverOriginalName(null);
+}
+
         // 2) Approver name (only if there's a currentApprover)
         if (proposal.getCurrentApprover() != null) {
             proposalDTO.setApproverName(proposal.getCurrentApprover().getEmail());
